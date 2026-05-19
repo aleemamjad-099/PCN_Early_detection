@@ -1,0 +1,6 @@
+medvenv/
+.env
+*.pkl
+__pycache__/
+fastapi/rag/pcn_faiss.index
+fastapi/rag/pcn_meta.pkl
