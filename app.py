@@ -5,18 +5,33 @@ PCN Early Detection System — Professional Frontend v4.1
 Pancreatic Cancer & Neurodegenerative Disorder Detection
 Final Year Project | Medical AI | GCUF
 """
-import subprocess
-import time
-import streamlit as st
 
-# 🚀 Streamlit Cloud par backend ko background mein chalane ka jugad
-if 'backend_started' not in st.session_state:
-    with st.spinner("Initializing Medical Machine Learning Models... Please wait"):
-        # Background process mein uvicorn start karein
-        subprocess.Popen(["uvicorn", "api:app", "--host", "127.0.0.1", "--port", "8000"])
-        time.sleep(5)  # Models aur FAISS index load hone ka time dein
-        st.session_state['backend_started'] = True
-        
+
+
+# 🌐 Cloud Secrets se URL check karne ke liye safe bypass
+import os
+
+# Agar Streamlit Secrets me API_URL mojud hai (Cloud par), to wo use karein
+if "API_URL" in os.environ:
+    API_URL = os.environ["API_URL"]
+else:
+    # Agar aap local computer par chala rahe hain, to purana localhost chalega
+    API_URL = "http://127.0.0.1:8000"
+
+# ⚠️ Sirf local par uvicorn chalane ke liye check (Cloud crash se bachne ke liye)
+if "API_URL" not in os.environ:
+    # ⬇️ JO AAPKA PURANA SUBPROCESS WALA CODE THA, WOH IS IF KE ANDAR RAKHEIN ⬇️
+    # Jaise aapne uvicorn start kiya hua tha:
+    try:
+        import subprocess
+        # Agar pehle se chal raha ho to theek, warna start karein
+        # os.system("uvicorn api:app --reload &") ya jo bhi aapka pehle wala startup line tha
+        pass
+    except Exception:
+        pass
+
+
+
 import time, io, datetime, re, requests
 import streamlit as st
 import plotly.graph_objects as go
