@@ -1,50 +1,46 @@
-
-
 """
 PCN Early Detection System — Professional Frontend v4.1
 Pancreatic Cancer & Neurodegenerative Disorder Detection
 Final Year Project | Medical AI | GCUF
 """
 
-
-
-# 🌐 Cloud Secrets se URL check karne ke liye safe bypass
 import os
+import time
+import io
+import datetime
+import re
+import requests
+import streamlit as st
+import plotly.graph_objects as go
 
-# Agar Streamlit Secrets me API_URL mojud hai (Cloud par), to wo use karein
+# 🌐 Environment Variables check karne ka safe logic
 if "API_URL" in os.environ:
+    # Agar aapne Streamlit Cloud Secrets mein API_URL diya hai
     API_URL = os.environ["API_URL"]
 else:
-    # Agar aap local computer par chala rahe hain, to purana localhost chalega
-    API_URL = "http://127.0.0.1:8000"
+    # 🌟 DEFAULT: Hugging Face Live Backend URL (Yeh har jagah ke liye best hai)
+    API_URL = "https://aleem-amjad-01-pcn-backend-api.hf.space"
 
-# ⚠️ Sirf local par uvicorn chalane ke liye check (Cloud crash se bachne ke liye)
-if "API_URL" not in os.environ:
-    # ⬇️ JO AAPKA PURANA SUBPROCESS WALA CODE THA, WOH IS IF KE ANDAR RAKHEIN ⬇️
-    # Jaise aapne uvicorn start kiya hua tha:
+# ⚠️ Sirf local computer par automatic uvicorn start karne ke liye logic
+# Agar environment variable real live API par point nahi kar raha, tabhi background mein local process chalaye
+if "hf.space" not in API_URL:
     try:
         import subprocess
-        # Agar pehle se chal raha ho to theek, warna start karein
-        # os.system("uvicorn api:app --reload &") ya jo bhi aapka pehle wala startup line tha
+        # Aapka purana background process startup lines agar aap local use karna chahein:
+        # os.system("uvicorn api:app --reload &")
         pass
     except Exception:
         pass
 
-
-
-import time, io, datetime, re, requests
-import streamlit as st
-import plotly.graph_objects as go
-
-# ── RAG status loaded once at startup from backend /health ────────────────────
-API_URL = "http://127.0.0.1:8000"
-
+# ── STREAMLIT PAGE CONFIGURATION ──────────────────────────────────────────────
 st.set_page_config(
     page_title="PCN Early Detection",
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+
 
 # ── Session State ─────────────────────────────────────────────────────────────
 if "dark_mode"        not in st.session_state: st.session_state.dark_mode        = False
