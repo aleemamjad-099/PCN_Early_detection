@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCN Early Detection System</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+[data-theme="light"]{
+  --bg:#f8fafc;--bg2:#f1f5f9;--card:#ffffff;--card2:#f8fafc;
+  --border:rgba(15,23,42,.08);--border2:rgba(15,23,42,.15);--border3:rgba(15,23,42,.3);
+  --blue:#2563eb;--blue2:#1d4ed8;--blue-lt:#eff6ff;--blue-md:rgba(37,99,235,.15);
+  --purple:#7c3aed;--purple-lt:#f5f3ff;--purple-md:rgba(124,58,237,.15);
+  --cyan:#0891b2;--cyan-lt:#ecfeff;
+  --green:#059669;--green-lt:#ecfdf5;--green-md:rgba(5,150,105,.2);
+  --red:#dc2626;--red-lt:#fef2f2;--red-md:rgba(220,38,38,.2);
+  --amber:#d97706;--amber-lt:#fffbeb;--amber-md:rgba(217,119,6,.2);
+  --txt:#0f172a;--txt2:#1e293b;--txt3:#475569;--txt4:#64748b;--txt5:#94a3b8;
+  --shadow:0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -2px rgba(0,0,0,0.05),0 10px 15px -3px rgba(37,99,235,0.03);
+  --shadow2:0 20px 25px -5px rgba(0,0,0,0.06),0 8px 10px -6px rgba(0,0,0,0.06),0 25px 50px -12px rgba(37,99,235,0.08);
+  --topbar-bg:rgba(255,255,255,.8);--sidebar-bg:#ffffff;--inp-bg:#f8fafc;
+  --gauge-bg:#ffffff;--grid-c:#f1f5f9;--tick-c:#94a3b8;
+  --glass:rgba(255,255,255,.75);
+}
+[data-theme="dark"]{
+  --bg:#020617;--bg2:#0f172a;--card:#0b1329;--card2:#0d152d;
+  --border:rgba(255,255,255,.05);--border2:rgba(255,255,255,.12);--border3:rgba(255,255,255,.25);
+  --blue:#3b82f6;--blue2:#60a5fa;--blue-lt:rgba(59,130,246,.08);--blue-md:rgba(59,130,246,.18);
+  --purple:#a78bfa;--purple-lt:rgba(167,139,250,.08);--purple-md:rgba(167,139,250,.18);
+  --cyan:#22d3ee;--cyan-lt:rgba(34,211,238,.08);
+  --green:#10b981;--green-lt:rgba(16,185,129,.08);--green-md:rgba(16,185,129,.18);
+  --red:#ef4444;--red-lt:rgba(239,68,68,.08);--red-md:rgba(239,68,68,.18);
+  --amber:#f59e0b;--amber-lt:rgba(245,158,11,.06);--amber-md:rgba(245,158,11,.18);
+  --txt:#f8fafc;--txt2:#e2e8f0;--txt3:#94a3b8;--txt4:#64748b;--txt5:#475569;
+  --shadow:0 4px 6px -1px rgba(0,0,0,0.3),0 2px 4px -2px rgba(0,0,0,0.3);
+  --shadow2:0 20px 25px -5px rgba(0,0,0,0.4),0 25px 50px -12px rgba(0,0,0,0.5);
+  --topbar-bg:rgba(2,6,23,.8);--sidebar-bg:#080e1e;--inp-bg:rgba(255,255,255,.03);
+  --gauge-bg:#0b1329;--grid-c:#1e293b;--tick-c:#475569;
+  --glass:rgba(11,19,41,.75);
+}
+
+html,body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--border3)}
+
+/* ── MESH BACKGROUND ── */
+.mesh-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.mesh-bg::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:.4}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);animation:orbf 12s ease-in-out infinite}
+.o1{width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.15),transparent 60%);top:-200px;left:-200px}
+.o2{width:600px;height:600px;background:radial-gradient(circle,rgba(124,58,237,.1),transparent 60%);bottom:-150px;right:-100px;animation-delay:-5s}
+.o3{width:500px;height:500px;background:radial-gradient(circle,rgba(6,182,212,.08),transparent 60%);top:45%;left:45%;animation-delay:-9s}
+@keyframes orbf{0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(50px,-50px) scale(1.05)}70%{transform:translate(-30px,30px) scale(.97)}}
+[data-theme="dark"] .orb{opacity:.5}
+
+/* ── PAGES ── */
+.page{display:none;min-height:100vh;position:relative;z-index:1}
+.page.active{display:flex}
+
+/* ════════════ AUTH ════════════ */
+.auth-wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
+
+.auth-left{
+  background:linear-gradient(155deg,#0a122c 0%,#0f1e5a 35%,#1d4ed8 70%,#2563eb 100%);
+  display:flex;flex-direction:column;justify-content:center;
+  padding:4rem 3.5rem;position:relative;overflow:hidden;
+}
+.auth-mesh-inner{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.05) 1px,transparent 1px);background-size:28px 28px}
+.auth-orbit{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.06);animation:ao 20s linear infinite}
+.ao1{width:600px;height:600px;top:-150px;right:-200px}
+.ao2{width:400px;height:400px;bottom:-100px;left:-100px;animation-direction:reverse;animation-duration:15s}
+@keyframes ao{to{transform:rotate(360deg)}}
+.auth-shine{position:absolute;width:300px;height:300px;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);top:20%;right:10%;border-radius:50%;animation:orbf 8s ease-in-out infinite}
+
+.auth-logo-row{display:flex;align-items:center;gap:16px;margin-bottom:3.5rem;position:relative;z-index:1}
+.auth-logo-box{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:600;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.15)}
+.auth-brand-txt{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#fff;letter-spacing:-.01em}
+.auth-brand-sub{font-size:.7rem;color:rgba(255,255,255,.5);margin-top:3px}
+
+.live-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:100px;padding:.32rem 1rem;margin-bottom:1.5rem;font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.8);position:relative;z-index:1}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.25);animation:ld 2s infinite}
+@keyframes ld{0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,.25)}50%{box-shadow:0 0 0 6px rgba(16,185,129,.05)}}
+
+.auth-h1{font-family:'Syne',sans-serif;font-weight:800;font-size:3.2rem;line-height:1.08;letter-spacing:-.04em;color:#fff;margin-bottom:1rem;position:relative;z-index:1}
+.auth-h1 em{font-style:normal;background:linear-gradient(135deg,#93c5fd,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-desc{font-size:.9rem;color:rgba(255,255,255,.6);line-height:1.8;margin-bottom:2rem;position:relative;z-index:1}
+
+.auth-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;margin-bottom:2rem;position:relative;z-index:1}
+.auth-stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1rem 1.2rem;backdrop-filter:blur(8px);transition:all .3s}
+.auth-stat:hover{background:rgba(255,255,255,.12);transform:translateY(-2px)}
+.ast-val{font-family:'Syne',sans-serif;font-weight:700;font-size:1.7rem;color:#fff;line-height:1}
+.ast-lbl{font-size:.63rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:4px}
+
+.auth-tags{display:flex;flex-wrap:wrap;gap:.45rem;position:relative;z-index:1}
+.atag{font-size:.65rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.27rem .85rem;border-radius:100px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75)}
+
+.auth-right{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:3rem 2.5rem;background:var(--card);position:relative;overflow:hidden}
+.auth-right::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,var(--blue-md),transparent 60%);pointer-events:none}
+.auth-form-box{width:100%;max-width:420px;position:relative;z-index:1}
+
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:.67rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin-bottom:.7rem}
+.eyebrow::before{content:'';width:18px;height:2px;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:2px}
+.form-title{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;color:var(--txt);margin-bottom:.35rem;letter-spacing:-.03em}
+.form-sub{font-size:.85rem;color:var(--txt3);margin-bottom:2rem;line-height:1.6}
+
+.form-group{margin-bottom:1.1rem}
+.form-lbl{display:block;font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--txt3);margin-bottom:.5rem}
+.form-inp{width:100%;padding:.8rem 1rem;background:var(--inp-bg);border:1.5px solid var(--border);border-radius:10px;color:var(--txt);font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:500;transition:all .25s;outline:none}
+.form-inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-md);background:var(--card)}
+.form-inp::placeholder{color:var(--txt4)}
+
+.btn-primary{width:100%;padding:.92rem;background:linear-gradient(135deg,var(--blue) 0%,var(--purple) 100%);border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;position:relative;overflow:hidden;transition:all .25s;box-shadow:0 4px 20px rgba(37,99,235,.25);margin-top:.5rem}
+.btn-primary::before{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.1),transparent 55%)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(37,99,235,.4)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+.auth-switch{text-align:center;margin-top:1.5rem;font-size:.85rem;color:var(--txt3)}
+.auth-switch a{color:var(--blue);text-decoration:none;font-weight:600}
+.alert{padding:.75rem 1rem;border-radius:10px;font-size:.83rem;margin-bottom:1rem;display:none;border:1.5px solid}
+.alert.error{background:var(--red-lt);border-color:var(--red-md);color:var(--red)}
+.alert.show{display:block}
+.admin-hint{margin-top:1.5rem;padding:.9rem 1.1rem;background:var(--blue-lt);border:1px solid var(--blue-md);border-radius:10px;font-size:.78rem;color:var(--txt2);line-height:1.8}
+.admin-hint code{font-family:'JetBrains Mono',monospace;background:var(--blue-md);padding:1px 6px;border-radius:4px;color:var(--blue2);font-size:.74rem}
+
+/* ════════════ APP LAYOUT ════════════ */
+#app-page{flex-direction:row;background:var(--bg)}
+
+.sidebar{
+  width:268px;min-height:100vh;background:var(--sidebar-bg);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  position:fixed;left:0;top:0;bottom:0;z-index:1000;transition:background .3s, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sb-hdr{padding:1.5rem 1.4rem 1.2rem;border-bottom:1px solid var(--border)}
+.sb-logo{display:flex;align-items:center;gap:12px}
+.sb-logo-ico{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.2);flex-shrink:0}
+.sb-brand{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--txt)}
+.sb-brand-s{font-size:.64rem;color:var(--txt4);margin-top:2px}
+.sb-user{margin:1rem 1rem .5rem;padding:.9rem 1rem;background:var(--bg2);border:1.5px solid var(--border);border-radius:13px;display:flex;align-items:center;gap:10px}
+.sb-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.15);flex-shrink:0}
+.sb-uname{font-weight:600;font-size:.83rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.sb-urole{font-size:.65rem;color:var(--txt4);margin-top:2px}
+.sb-nav{flex:1;padding:.5rem .8rem;overflow-y:auto}
+.sb-lbl{font-size:.6rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--txt5);padding:.6rem .6rem .4rem;margin-top:.5rem}
+.sb-item{display:flex;align-items:center;gap:11px;padding:.72rem 1rem;border-radius:10px;cursor:pointer;transition:all .2s;margin-bottom:2px;border:1.5px solid transparent;font-size:.84rem;font-weight:500;color:var(--txt3)}
+.sb-item:hover{background:var(--blue-lt);color:var(--blue);border-color:var(--blue-md)}
+.sb-item.active{background:linear-gradient(135deg,var(--blue-lt),var(--purple-lt));color:var(--blue);border-color:var(--blue-md);box-shadow:0 2px 12px rgba(37,99,235,.05)}
+.sb-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:55%;background:linear-gradient(var(--blue),var(--purple));border-radius:0 2px 2px 0}
+.sb-item{position:relative}
+.sb-ico{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.95rem;background:var(--bg2);border:1px solid var(--border);transition:all .22s}
+.sb-item.active .sb-ico,.sb-item:hover .sb-ico{background:var(--blue-lt);border-color:var(--blue-md)}
+.sb-badge{font-size:.58rem;font-weight:700;padding:.14rem .6rem;border-radius:100px;background:var(--blue-lt);color:var(--blue);border:1px solid var(--blue-md);margin-left:auto}
+.sb-adm:hover{color:var(--purple);border-color:var(--purple-md);background:var(--purple-lt)}
+.sb-adm.active{background:var(--purple-lt);color:var(--purple);border-color:var(--purple-md)}
+.sb-footer{padding:1rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.5rem}
+.sb-footer-row{display:flex;gap:.5rem}
+.logout-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:.68rem 1rem;border-radius:10px;cursor:pointer;background:transparent;border:1.5px solid var(--border);font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:600;color:var(--txt3);transition:all .2s}
+.logout-btn:hover{background:var(--red-lt);border-color:var(--red-md);color:var(--red)}
+.theme-btn{width:44px;display:flex;align-items:center;justify-content:center;padding:.68rem;border-radius:10px;cursor:pointer;background:var(--bg2);border:1.5px solid var(--border);font-size:1rem;transition:all .2s}
+.theme-btn:hover{border-color:var(--amber-md);background:var(--amber-lt)}
+
+.topbar{
+  position:fixed;top:0;left:268px;right:0;height:64px;z-index:100;
+  background:var(--topbar-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 2rem;gap:1rem;transition:left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tb-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.18rem;color:var(--txt);letter-spacing:-.02em}
+.tb-sub{font-size:.73rem;color:var(--txt4);margin-top:1px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:.75rem}
+.api-pill{display:flex;align-items:center;gap:7px;padding:.35rem 1rem;border-radius:100px;font-size:.72rem;font-weight:600;border:1.5px solid;cursor:pointer;transition:all .2s}
+.api-pill.ok{background:var(--green-lt);border-color:var(--green-md);color:var(--green)}
+.api-pill.err{background:var(--red-lt);border-color:var(--red-md);color:var(--red)}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:ldp 2s infinite}
+@keyframes ldp{0%,100%{box-shadow:0 0 0 3px var(--green-lt)}50%{box-shadow:0 0 0 6px transparent}}
+.ddot{width:7px;height:7px;border-radius:50%;background:var(--red)}
+
+.main{margin-left:268px;padding-top:64px;min-height:100vh;flex:1;transition:margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);position:relative;z-index:1}
+.section{display:none;padding:2rem;animation:fadeUp .4s ease}
+.section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RESPONSIVE MENU BUTTON ── */
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--txt);
+  cursor: pointer;
+  padding: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.hamburger-btn:hover {
+  background: var(--bg2);
+  color: var(--blue);
+  border-color: var(--blue-md);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ── TABLE RESPONSIVE SCROLL CONTAINER ── */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+/* ── PLOTLY AUTO-RESIZING BOUNDARIES ── */
+.js-plotly-plot, .plotly {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* ════════ DASHBOARD ════════ */
+.dash-hero{border-radius:22px;padding:2.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden;background:linear-gradient(135deg,#0a122c 0%,#0f1e5a 40%,#1d4ed8 70%,#7c3aed 100%);box-shadow:0 8px 40px rgba(37,99,235,.15)}
+.dash-hero::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.03) 1px,transparent 1px);background-size:24px 24px}
+.dash-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.03)}
+.dash-inner{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:2rem}
+.dash-greet{font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;letter-spacing:-.04em;color:#fff;margin-bottom:.3rem}
+.dash-sub{font-size:.85rem;color:rgba(255,255,255,.55);margin-bottom:1rem}
+.dash-tags{display:flex;gap:.5rem;flex-wrap:wrap}
+.dash-tag{font-size:.63rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.23rem .85rem;border-radius:100px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.8)}
+.dash-clock{text-align:right;flex-shrink:0}
+.dash-date{font-size:.82rem;color:rgba(255,255,255,.5)}
+.dash-time{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:600;color:#fff;margin-top:4px;letter-spacing:-.02em}
+
+.stats-g{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1.4rem 1.5rem;position:relative;overflow:hidden;box-shadow:var(--shadow);transition:all .3s;cursor:default}
+.stat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow2);border-color:var(--blue-md)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)}
+.sc-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:.9rem;background:var(--icbg);border:1px solid var(--icbd)}
+.sc-lbl{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--txt4);margin-bottom:.3rem}
+.sc-num{font-family:'Syne',sans-serif;font-weight:700;font-size:2.2rem;color:var(--txt);line-height:1;letter-spacing:-.04em}
+.sc-hint{font-size:.7rem;color:var(--txt4);margin-top:.3rem}
+.sc-num-anim{animation:numPop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes numPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ── NEW PREMIUM UI OVERRIDES ── */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border2);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+.hero-gradient {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #8b5cf6 100%);
+  color: white;
+}
+.result-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+.summary-side {
+  position: sticky;
+  top: 84px;
+}
+.detail-side {
+  min-height: 500px;
+  min-width: 0;
+}
+#rp-filled {
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.premium-tab-list {
+  display: flex;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 1.5rem;
+  gap: 4px;
+}
+.premium-tab {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--txt3);
+}
+.premium-tab.active {
+  background: var(--card);
+  color: var(--blue);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.quick-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.quick-card{background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all .3s;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.quick-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,var(--blue-md),transparent 60%);opacity:0;transition:opacity .3s}
+.quick-card:hover{transform:translateY(-6px);box-shadow:var(--shadow2);border-color:var(--blue-md)}
+.quick-card:hover::before{opacity:1}
+.qc-ico{font-size:2.8rem;display:block;margin-bottom:1rem;transition:transform .3s}
+.quick-card:hover .qc-ico{transform:scale(1.15) translateY(-4px)}
+.qc-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--txt);margin-bottom:.4rem}
+.qc-desc{font-size:.77rem;color:var(--txt4);line-height:1.6}
+
+/* ════════ PREDICT ════════ */
+.predict-wrap{display:grid;grid-template-columns:1fr;gap:2.2rem;align-items:start}
+
+/* Form card */
+.gc{background:var(--card);border:1.5px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);transition:border-color .3s}
+.gc:hover{border-color:var(--border2)}
+.gc-hd{padding:1.2rem 1.7rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--card2)}
+.gc-ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;background:var(--blue-lt);border:1px solid var(--blue-md)}
+.gc-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:var(--txt)}
+.gc-sub{font-size:.7rem;color:var(--txt4);margin-top:1px}
+.gc-body{padding:1.5rem 1.7rem}
+
+.fr{display:grid;gap:.9rem;margin-bottom:.9rem}
+.c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:1fr 1fr 1fr}
+.fl{display:block;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--txt3);margin-bottom:.45rem}
+.fi{width:100%;padding:.65rem .9rem;background:var(--inp-bg);border:1.5px solid var(--border);border-radius:9px;color:var(--txt);font-family:'Space Grotesk',sans-serif;font-size:.87rem;font-weight:500;outline:none;transition:all .22s}
+.fi:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-md);background:var(--card)}
+select.fi{cursor:pointer}.fi::placeholder{color:var(--txt4)}
+
+.fsect{display:flex;align-items:center;gap:8px;font-size:.63rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--txt4);margin:.9rem 0 .75rem}
+.fsect::after{content:'';flex:1;height:1px;background:var(--border)}
+.fsect-ic{width:22px;height:22px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.72rem}
+
+.range-wrap{display:flex;align-items:center;gap:10px}
+.range-wrap input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border2);cursor:pointer;outline:none}
+.range-wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--blue);box-shadow:0 2px 8px rgba(37,99,235,.4);cursor:pointer;transition:transform .2s}
+.range-wrap input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+.range-val{font-family:'JetBrains Mono',monospace;font-size:.74rem;font-weight:600;color:var(--blue);background:var(--blue-lt);border:1px solid var(--blue-md);padding:2px 9px;border-radius:6px;min-width:40px;text-align:center}
+
+.run-btn{width:100%;padding:.95rem;margin-top:1.2rem;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;position:relative;overflow:hidden;transition:all .25s;box-shadow:0 4px 20px rgba(37,99,235,.2)}
+.run-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.1),transparent 55%)}
+.run-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(37,99,235,.4)}
+.run-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+/* Result panel — FIXED: no page reset */
+.r-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:460px;padding:2rem;text-align:center}
+.r-empty-ico{font-size:4rem;opacity:.18;margin-bottom:1rem;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.r-empty-txt{font-size:.85rem;color:var(--txt4);line-height:1.8}
+
+.rtabs{display:flex;padding:0 1.2rem;gap:.2rem;background:var(--card2);border-bottom:1.5px solid var(--border)}
+.rtab{padding:.7rem 1.1rem;font-size:.8rem;font-weight:600;color:var(--txt4);cursor:pointer;border-radius:8px 8px 0 0;border:1.5px solid transparent;border-bottom:none;transition:all .2s;position:relative;bottom:-1.5px;white-space:nowrap}
+.rtab:hover{color:var(--txt2)}
+.rtab.active{color:var(--blue);background:var(--card);border-color:var(--blue-md)}
+.rtab-pane{display:none;animation:fadeUp .3s ease}
+.rtab-pane.active{display:block}
+
+.r-banner{border-radius:14px;padding:1.5rem;border:1.5px solid;position:relative;overflow:hidden;margin-bottom:1.2rem}
+.r-banner.high{background:linear-gradient(135deg,var(--red-lt),var(--card));border-color:var(--red-md)}
+.r-banner.low{background:linear-gradient(135deg,var(--green-lt),var(--card));border-color:var(--green-md)}
+.r-badge-sm{display:inline-flex;align-items:center;gap:6px;padding:.25rem .9rem;border-radius:100px;font-size:.67rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;border:1.5px solid;margin-bottom:.8rem}
+.rb-h{background:var(--red-lt);border-color:var(--red-md);color:var(--red)}
+.rb-l{background:var(--green-lt);border-color:var(--green-md);color:var(--green)}
+.r-pct{font-family:'Syne',sans-serif;font-weight:800;font-size:4rem;line-height:1;letter-spacing:-.06em;margin-bottom:.3rem}
+.r-pct.high{color:var(--red)}.r-pct.low{color:var(--green)}
+.r-desc{font-size:.82rem;color:var(--txt3);line-height:1.7;margin-bottom:.7rem}
+.r-conf{font-size:.68rem;font-family:'JetBrains Mono',monospace;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:.27rem .9rem;color:var(--txt3);display:inline-block}
+
+.tiles{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1rem}
+.tile{background:var(--card2);border:1.5px solid var(--border);border-radius:11px;padding:.65rem .9rem;min-width:72px;text-align:center;transition:all .2s;cursor:default;flex:1 1 80px}
+.tile:hover{transform:translateY(-2px);border-color:var(--blue)}
+.tv{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--txt)}
+.tl{font-size:.58rem;color:var(--txt4);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:3px}
+
+/* Feature table */
+.eng-tbl{width:100%;border-collapse:collapse;font-size:.82rem}
+.eng-tbl th{background:var(--bg2);color:var(--txt3);font-weight:600;font-size:.63rem;text-transform:uppercase;letter-spacing:.12em;padding:.75rem 1rem;text-align:left;border-bottom:1.5px solid var(--border)}
+.eng-tbl td{padding:.72rem 1rem;border-bottom:1px solid var(--border);color:var(--txt3)}
+.eng-tbl tr:last-child td{border-bottom:none}
+.eng-tbl tr:hover td{background:var(--blue-lt)}
+.mono-v{font-family:'JetBrains Mono',monospace;color:var(--blue);font-weight:600;font-size:.88rem}
+.mono-f{font-family:'JetBrains Mono',monospace;font-size:.73rem;color:var(--txt4)}
+
+/* Chart pane */
+.chart2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.chart2 > div{min-width:0}
+.chart-lbl{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--txt4);margin-bottom:.75rem}
+
+/* Report */
+.disc-box{background:var(--amber-lt);border:1.5px solid var(--amber-md);border-radius:10px;padding:.9rem 1.1rem;font-size:.74rem;color:var(--amber);line-height:1.7;margin-top:1.2rem}
+[data-theme="light"] .disc-box{color:#92400e}
+.dl-btns{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem} .dl-pdf{grid-column:1/-1}
+.dl-btn{padding:.77rem 1rem;border-radius:10px;background:var(--bg2);border:1.5px solid var(--border);color:var(--txt3);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Space Grotesk',sans-serif;text-align:center}
+.dl-btn:hover{border-color:var(--blue-md);color:var(--blue);background:var(--blue-lt)}
+
+/* ════════ HISTORY ════════ */
+.page-hdr{font-family:'Syne',sans-serif;font-weight:700;font-size:1.5rem;color:var(--txt);letter-spacing:-.03em;margin-bottom:1.2rem;display:flex;align-items:center;gap:.7rem}
+.page-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.tcard{background:var(--card);border:1.5px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.tbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--card2)}
+.tbar-lbl{font-weight:600;font-size:.88rem;color:var(--txt)}
+.htable{width:100%;border-collapse:collapse;font-size:.84rem}
+.htable th{background:var(--bg2);color:var(--txt3);font-weight:600;font-size:.63rem;text-transform:uppercase;letter-spacing:.12em;padding:.8rem 1.4rem;text-align:left;border-bottom:1px solid var(--border)}
+.htable td{padding:.9rem 1.4rem;border-bottom:1px solid var(--border);color:var(--txt2);vertical-align:middle}
+.htable tr:last-child td{border-bottom:none}
+.htable tr:hover td{background:var(--blue-lt);transition:background .2s}
+.rbadge{display:inline-flex;align-items:center;gap:4px;padding:.22rem .85rem;border-radius:100px;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;border:1.5px solid}
+.rbadge.hi{background:var(--red-lt);color:var(--red);border-color:var(--red-md)}
+.rbadge.lo{background:var(--green-lt);color:var(--green);border-color:var(--green-md)}
+.empty-st{text-align:center;padding:3.5rem;color:var(--txt4);font-size:.85rem}
+
+/* ════════ CHATBOT ════════ */
+.chat-wrap{display:grid;grid-template-columns:1fr 280px;gap:1.5rem}
+.chat-card{background:var(--card);border:1.5px solid var(--border);border-radius:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:540px;overflow:hidden}
+.chat-hdr{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--card2)}
+.chat-av{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;box-shadow:0 4px 14px rgba(37,99,235,.2)}
+.chat-name{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:var(--txt)}
+.chat-st-row{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--txt4);margin-top:2px}
+.chat-clr-btn{margin-left:auto;padding:.35rem .9rem;border-radius:8px;background:var(--bg2);border:1.5px solid var(--border);font-size:.72rem;font-weight:600;color:var(--txt3);cursor:pointer;transition:all .18s;font-family:'Space Grotesk',sans-serif}
+.chat-clr-btn:hover{border-color:var(--red-md);color:var(--red);background:var(--red-lt)}
+.chat-msgs{flex:1;overflow-y:auto;padding:1.2rem 1.5rem;display:flex;flex-direction:column;gap:.9rem}
+.chat-msg{display:flex;gap:8px;align-items:flex-end;animation:fadeUp .3s ease}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-bub{max-width:78%;padding:.8rem 1.1rem;border-radius:14px;font-size:.86rem;line-height:1.75;color:var(--txt2)}
+.chat-bub.bot{background:var(--bg2);border:1.5px solid var(--border);border-bottom-left-radius:4px}
+.chat-bub.user{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border-bottom-right-radius:4px;box-shadow:0 4px 16px rgba(37,99,235,.15)}
+.chat-bub.err{background:var(--red-lt);border:1.5px solid var(--red-md);color:var(--red)}
+.chat-src-pills{margin-top:.55rem;display:flex;flex-wrap:wrap;gap:.35rem}
+.src-pill{font-size:.62rem;font-family:'JetBrains Mono',monospace;background:var(--blue-lt);border:1px solid var(--blue-md);color:var(--blue);padding:.15rem .65rem;border-radius:5px;font-weight:600}
+.msg-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0}
+.av-bot{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff}
+.av-user{background:var(--bg2);border:1.5px solid var(--border);color:var(--txt3)}
+.typing-ind{display:flex;align-items:center;gap:5px;padding:.75rem 1rem;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;border-bottom-left-radius:4px;width:68px}
+.td{width:7px;height:7px;border-radius:50%;background:var(--txt4);animation:tdb 1.3s infinite}
+.td:nth-child(2){animation-delay:.18s}.td:nth-child(3){animation-delay:.36s}
+@keyframes tdb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+.chat-inp-wrap{border-top:1px solid var(--border);padding:1rem 1.5rem;background:var(--card2)}
+.chat-offline-notice{background:var(--amber-lt);border:1px solid var(--amber-md);border-radius:9px;padding:.7rem 1rem;font-size:.76rem;color:var(--amber);margin-bottom:.75rem;line-height:1.6;display:none}
+[data-theme="light"] .chat-offline-notice{color:#92400e}
+.chat-offline-notice code{font-family:'JetBrains Mono',monospace;font-size:.72rem}
+.chat-row{display:flex;gap:.6rem;align-items:flex-end}
+.chat-ta{flex:1;background:var(--inp-bg);border:1.5px solid var(--border);border-radius:10px;padding:.65rem .9rem;color:var(--txt);font-family:'Space Grotesk',sans-serif;font-size:.88rem;outline:none;resize:none;line-height:1.5;max-height:120px;transition:all .22s}
+.chat-ta:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-md);background:var(--card)}
+.chat-ta::placeholder{color:var(--txt4)}
+.chat-send-btn{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;box-shadow:0 3px 12px rgba(37,99,235,.2)}
+.chat-send-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,.3)}
+.chat-send-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.chat-sugg-row{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.7rem}
+.c-sugg{padding:.28rem .85rem;border-radius:100px;background:var(--blue-lt);border:1px solid var(--blue-md);color:var(--blue);font-size:.7rem;font-weight:600;cursor:pointer;transition:all .18s}
+.c-sugg:hover{background:var(--blue-md)}
+
+.chat-info-panel{display:flex;flex-direction:column;gap:.85rem}
+.ci-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:1.1rem 1.2rem;box-shadow:var(--shadow);transition:transform .3s}
+.ci-card:hover{transform:translateY(-3px)}
+.ci-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:.7rem;background:var(--blue-lt);border:1px solid var(--blue-md)}
+.ci-title{font-weight:600;font-size:.84rem;color:var(--txt);margin-bottom:.35rem}
+.ci-desc{font-size:.76rem;color:var(--txt3);line-height:1.7}
+
+/* ════════ ADMIN ════════ */
+.admin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.a-stat{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:1.2rem 1.5rem;display:flex;align-items:center;gap:1rem;box-shadow:var(--shadow);transition:all .3s}
+.a-stat:hover{transform:translateY(-3px)}
+.a-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;border:1.5px solid}
+.a-val{font-family:'Syne',sans-serif;font-weight:700;font-size:2rem;color:var(--txt);line-height:1;letter-spacing:-.04em}
+.a-lbl{font-size:.63rem;color:var(--txt4);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:3px}
+.utable{width:100%;border-collapse:collapse;font-size:.83rem}
+.utable th{background:var(--bg2);color:var(--txt3);font-weight:600;font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;padding:.8rem 1.4rem;text-align:left;border-bottom:1px solid var(--border)}
+.utable td{padding:.87rem 1.4rem;border-bottom:1px solid var(--border);color:var(--txt2);vertical-align:middle}
+.utable tr:last-child td{border-bottom:none}
+.utable tr:hover td{background:var(--blue-lt)}
+.u-cell{display:flex;align-items:center;gap:10px}
+.u-av{width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
+.u-nm{font-weight:600;color:var(--txt);font-size:.87rem}
+.u-ml{font-size:.71rem;color:var(--txt4)}
+.sbadge{display:inline-flex;align-items:center;gap:4px;padding:.2rem .75rem;border-radius:100px;font-size:.63rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1.5px solid}
+.sb-ok{background:var(--green-lt);color:var(--green);border-color:var(--green-md)}
+.sb-ban{background:var(--red-lt);color:var(--red);border-color:var(--red-md)}
+.sb-adm2{background:var(--purple-lt);color:var(--purple);border-color:var(--purple-md)}
+.acts-row{display:flex;gap:.4rem;flex-wrap:wrap}
+.act{padding:.28rem .75rem;border-radius:7px;font-size:.7rem;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .18s;font-family:'Space Grotesk',sans-serif}
+.act-b{background:var(--red-lt);color:var(--red);border-color:var(--red-md)}.act-b:hover{background:var(--red-md)}
+.act-u{background:var(--green-lt);color:var(--green);border-color:var(--green-md)}.act-u:hover{background:var(--green-md)}
+.act-d{background:var(--bg2);color:var(--txt4);border-color:var(--border)}.act-d:hover{color:var(--red);border-color:var(--red-md);background:var(--red-lt)}
+.act-a{background:var(--purple-lt);color:var(--purple);border-color:var(--purple-md)}.act-a:hover{background:var(--purple-md)}
+.s-inp{background:var(--inp-bg);border:1.5px solid var(--border);border-radius:8px;padding:.45rem .9rem;color:var(--txt);font-size:.8rem;font-family:'Space Grotesk',sans-serif;outline:none;width:220px;transition:border-color .2s}
+.s-inp:focus{border-color:var(--blue)}.s-inp::placeholder{color:var(--txt4)}
+.r-btn{padding:.45rem 1rem;border-radius:8px;background:var(--blue-lt);border:1.5px solid var(--blue-md);color:var(--blue);font-size:.76rem;font-weight:600;cursor:pointer;transition:all .18s;font-family:'Space Grotesk',sans-serif}
+.r-btn:hover{background:var(--blue-md)}
+
+/* ── DOC TABS PANEL ── */
+.doc-tab-pane {
+  animation: fadeUp .3s ease;
+}
+
+/* ════════ UTILS ════════ */
+.spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;vertical-align:middle;margin-left:8px}
+.spinner.show{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.load-overlay{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(10px);z-index:9000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+.load-overlay.show{display:flex}
+.load-ring{width:54px;height:54px;border:3px solid var(--blue-md);border-top-color:var(--blue);border-radius:50%;animation:spin .85s linear infinite}
+.load-ring-inner{width:36px;height:36px;border:2px solid var(--purple-md);border-top-color:var(--purple);border-radius:50%;animation:spin .6s linear infinite reverse;position:absolute}
+.load-ring-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.load-txt{font-size:.85rem;color:var(--txt2);font-weight:500}
+.load-sub{font-size:.72rem;color:var(--txt4)}
+
+.toast-container{position:fixed;bottom:2rem;right:2rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem}
+.toast{padding:.78rem 1.2rem;border-radius:12px;font-size:.83rem;display:flex;align-items:center;gap:.7rem;min-width:250px;animation:toastIn .3s ease;background:var(--card);box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:'Space Grotesk',sans-serif}
+@keyframes toastIn{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+.toast.success{border:1.5px solid var(--green-md);color:var(--green)}
+.toast.error{border:1.5px solid var(--red-md);color:var(--red)}
+.toast.info{border:1.5px solid var(--blue-md);color:var(--blue)}
+
+/* 3D Card Tilt */
+.tilt-card{transform-style:preserve-3d;transition:transform .3s cubic-bezier(.03,.98,.52,.99);will-change:transform}
+.tilt-card:hover{transform:perspective(600px) rotateX(2deg) rotateY(-2deg) scale(1.01)}
+
+@media(max-width:1024px){
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main {
+    margin-left: 0 !important;
+  }
+  .topbar {
+    left: 0 !important;
+  }
+  .hamburger-btn {
+    display: flex !important;
+  }
+  .auth-wrap{grid-template-columns:1fr}.auth-left{display:none}
+  .stats-g{grid-template-columns:1fr 1fr}.predict-wrap{grid-template-columns:1fr}
+  .chat-wrap{grid-template-columns:1fr}.admin-stats{grid-template-columns:1fr}.chart2{grid-template-columns:1fr}
+  .result-grid{grid-template-columns:1fr}
+  .summary-side {
+    position: static !important;
+  }
+}
+@media(max-width:640px){
+  .stats-g{grid-template-columns:1fr}
+  .quick-cards{grid-template-columns:1fr}
+  .auth-stats{grid-template-columns:1fr}
+  .dash-greet{font-size:1.8rem}
+  .dash-time{font-size:1.5rem}
+  .dash-inner{flex-direction:column;gap:1rem;align-items:stretch}
+  .dash-clock{text-align:left}
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .sidebar, 
+  .topbar, 
+  .sb-footer, 
+  .logout-btn, 
+  .theme-btn, 
+  .r-btn, 
+  .load-overlay, 
+  .toast-container,
+  .premium-tab-list,
+  .dl-btns,
+  .disc-box,
+  .quick-cards,
+  .quick-card,
+  .hamburger-btn,
+  .sidebar-overlay {
+    display: none !important;
+  }
+  #section-predict > .predict-wrap > .gc:first-child {
+    display: none !important;
+  }
+  .main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .section {
+    display: none !important;
+    padding: 0 !important;
+  }
+  .section.active {
+    display: block !important;
+  }
+  .result-grid {
+    display: block !important;
+    width: 100% !important;
+  }
+  .summary-side {
+    position: relative !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin-bottom: 2rem !important;
+    border: none !important;
+  }
+  .detail-side {
+    width: 100% !important;
+    min-height: auto !important;
+  }
+  .js-plotly-plot {
+    max-width: 100% !important;
+  }
+  .gc {
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    page-break-inside: avoid;
+  }
+  .tile {
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    box-shadow: none !important;
+  }
+  pre#report-md {
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    max-height: none !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    width: 100% !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div class="mesh-bg"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
+<!-- ══ LOGIN PAGE ══ -->
+<div id="login-page" class="page active">
+<div class="auth-wrap">
+  <div class="auth-left">
+    <div class="auth-mesh-inner"></div>
+    <div class="auth-orbit ao1"></div><div class="auth-orbit ao2"></div>
+    <div class="auth-shine"></div>
+    <div class="auth-logo-row">
+      <div class="auth-logo-box">PCN</div>
+      <div><div class="auth-brand-txt">PCN Early Detection</div><div class="auth-brand-sub">Medical AI · GCUF Final Year Project</div></div>
+    </div>
+    <div class="live-badge"><span class="live-dot"></span>AI System · Active</div>
+    <h1 class="auth-h1">Early Detection<br>Saves <em>Lives.</em></h1>
+    <p class="auth-desc">Simultaneous screening for Pancreatic Cancer &amp; Neurodegenerative Disorders using 18 clinical biomarkers with an 89.36% ROC-AUC XGBoost ensemble model.</p>
+    <div class="auth-stats">
+      <div class="auth-stat"><div class="ast-val">89%</div><div class="ast-lbl">ROC-AUC</div></div>
+      <div class="auth-stat"><div class="ast-val">18</div><div class="ast-lbl">Biomarkers</div></div>
+      <div class="auth-stat"><div class="ast-val">2-in-1</div><div class="ast-lbl">Detection</div></div>
+      <div class="auth-stat"><div class="ast-val">&lt;20ms</div><div class="ast-lbl">Inference</div></div>
+    </div>
+    <div class="auth-tags">
+      <span class="atag">🧬 XGBoost</span><span class="atag">⚡ FastAPI</span><span class="atag">🤖 RAG Chatbot</span><span class="atag">📄 PDF Reports</span>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-form-box">
+      <div class="eyebrow">Secure Access</div>
+      <div class="form-title">Welcome back</div>
+      <div class="form-sub">Sign in to the PCN Detection System</div>
+      <div id="login-alert" class="alert error"></div>
+      <div class="form-group"><label class="form-lbl">Email Address</label><input type="email" id="login-email" class="form-inp" placeholder="doctor@hospital.com"/></div>
+      <div class="form-group"><label class="form-lbl">Password</label><input type="password" id="login-password" class="form-inp" placeholder="••••••••"/></div>
+      <button class="btn-primary" onclick="doLogin()" id="login-btn">Sign In <span class="spinner" id="login-sp"></span></button>
+      <div class="auth-switch">No account? <a href="#" onclick="showPage('register')">Create one free</a></div>
+      <div class="admin-hint"><strong>Default Admin:</strong> <code>admin@pcn.com</code> / <code>admin123</code></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ REGISTER PAGE ══ -->
+<div id="register-page" class="page">
+<div class="auth-wrap">
+  <div class="auth-left">
+    <div class="auth-mesh-inner"></div><div class="auth-orbit ao1"></div><div class="auth-orbit ao2"></div><div class="auth-shine"></div>
+    <div class="auth-logo-row">
+      <div class="auth-logo-box">PCN</div>
+      <div><div class="auth-brand-txt">PCN Early Detection</div><div class="auth-brand-sub">Medical AI · GCUF Final Year Project</div></div>
+    </div>
+    <div class="live-badge"><span class="live-dot"></span>Join the Platform</div>
+    <h1 class="auth-h1">Detect Earlier,<br>Treat <em>Better.</em></h1>
+    <p class="auth-desc">Create your account to access AI-powered clinical decision support. Over 85% of pancreatic cancer cases are diagnosed too late — our tool helps change that.</p>
+    <div class="auth-stats">
+      <div class="auth-stat"><div class="ast-val">81%</div><div class="ast-lbl">Accuracy</div></div>
+      <div class="auth-stat"><div class="ast-val">5K</div><div class="ast-lbl">EHR Trained</div></div>
+      <div class="auth-stat"><div class="ast-val">40%</div><div class="ast-lbl">Threshold</div></div>
+      <div class="auth-stat"><div class="ast-val">Free</div><div class="ast-lbl">Access</div></div>
+    </div>
+    <div class="auth-tags"><span class="atag">🦠 Pancreatic Cancer</span><span class="atag">🧠 Neuro Disorders</span><span class="atag">📊 Instant Results</span></div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-form-box">
+      <div class="eyebrow">New Account</div>
+      <div class="form-title">Create account</div>
+      <div class="form-sub">Get started with PCN Early Detection</div>
+      <div id="reg-alert" class="alert error"></div>
+      <div class="form-group"><label class="form-lbl">Full Name</label><input type="text" id="reg-name" class="form-inp" placeholder="Dr. Ahmed Ali"/></div>
+      <div class="form-group"><label class="form-lbl">Email Address</label><input type="email" id="reg-email" class="form-inp" placeholder="doctor@hospital.com"/></div>
+      <div class="form-group"><label class="form-lbl">Password</label><input type="password" id="reg-password" class="form-inp" placeholder="Min. 6 characters"/></div>
+      <button class="btn-primary" onclick="doRegister()" id="reg-btn">Create Account <span class="spinner" id="reg-sp"></span></button>
+      <div class="auth-switch">Already have an account? <a href="#" onclick="showPage('login')">Sign in</a></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app-page" class="page">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-hdr">
+      <div class="sb-logo">
+        <div class="sb-logo-ico">PCN</div>
+        <div><div class="sb-brand">PCN Detection</div><div class="sb-brand-s">Medical AI System</div></div>
+      </div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-av" id="sb-av-txt">U</div>
+      <div><div class="sb-uname" id="sb-uname">User</div><div class="sb-urole" id="sb-urole">Researcher</div></div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-lbl">Main</div>
+      <div class="sb-item active" onclick="showSection('dashboard')" id="sn-dashboard"><div class="sb-ico">🏠</div><span>Dashboard</span></div>
+      <div class="sb-item" onclick="showSection('predict')" id="sn-predict"><div class="sb-ico">🧬</div><span style="flex:1">Risk Assessment</span><span class="sb-badge">AI</span></div>
+      <div class="sb-item" onclick="showSection('history')" id="sn-history"><div class="sb-ico">📋</div><span>My History</span></div>
+      <div class="sb-item" onclick="showSection('chatbot')" id="sn-chatbot"><div class="sb-ico">🤖</div><span style="flex:1">PCN-AI Chat</span><span class="sb-badge">RAG</span></div>
+      <div class="sb-lbl" id="admin-nav-lbl" style="display:none">Administration</div>
+      <div class="sb-item sb-adm" onclick="showSection('admin')" id="sn-admin" style="display:none"><div class="sb-ico">⚙️</div><span>Admin Panel</span></div>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-footer-row">
+        <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
+        <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div><div class="tb-title" id="tb-title">Dashboard</div><div class="tb-sub" id="tb-sub">PCN Early Detection System</div></div>
+    <div class="tb-right">
+      <div class="api-pill err" id="api-pill" onclick="checkPCNApi()">
+        <div class="ddot" id="api-dot"></div><span id="api-txt">Checking API…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="section active" id="section-dashboard">
+      <div class="dash-hero tilt-card">
+        <div class="dash-inner">
+          <div>
+            <div class="dash-greet">Welcome back, <span id="wname">Doctor</span> 👋</div>
+            <div class="dash-sub">PCN Early Detection — AI-powered clinical decision support</div>
+            <div class="dash-tags">
+              <span class="dash-tag">🧬 XGBoost + Logistic Ensemble</span>
+              <span class="dash-tag">⚡ 89.36% ROC-AUC</span>
+              <span class="dash-tag">✓ GCUF FYP 2025</span>
+            </div>
+          </div>
+          <div class="dash-clock">
+            <div class="dash-date" id="d-date"></div>
+            <div class="dash-time" id="d-time"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-g">
+        <div class="stat-card tilt-card" style="--acc:linear-gradient(90deg,#2563eb,#7c3aed);--icbg:var(--blue-lt);--icbd:var(--blue-md)">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)"></div>
+          <div class="sc-icon">🧬</div><div class="sc-lbl">Clinical Features</div>
+          <div class="sc-num" id="sc1">18</div><div class="sc-hint">13 base · 5 engineered</div>
+        </div>
+        <div class="stat-card tilt-card" style="--acc:linear-gradient(90deg,#0891b2,#2563eb);--icbg:var(--cyan-lt);--icbd:rgba(8,145,178,.3)">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)"></div>
+          <div class="sc-icon">🎯</div><div class="sc-lbl">Detection Targets</div>
+          <div class="sc-num" id="sc2">2-in-1</div><div class="sc-hint">Pancreatic + Neuro</div>
+        </div>
+        <div class="stat-card tilt-card" style="--acc:linear-gradient(90deg,#d97706,#f59e0b);--icbg:var(--amber-lt);--icbd:var(--amber-md)">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)"></div>
+          <div class="sc-icon">📊</div><div class="sc-lbl">Model Accuracy</div>
+          <div class="sc-num" id="sc3">81%</div><div class="sc-hint">ROC-AUC: 89.36%</div>
+        </div>
+        <div class="stat-card tilt-card" style="--acc:linear-gradient(90deg,#059669,#06b6d4);--icbg:var(--green-lt);--icbd:var(--green-md)">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)"></div>
+          <div class="sc-icon">📋</div><div class="sc-lbl">My Assessments</div>
+          <div class="sc-num sc-num-anim" id="mycount">—</div><div class="sc-hint">This account total</div>
+        </div>
+      </div>
+
+      <div class="quick-cards">
+        <div class="quick-card" onclick="showSection('predict')">
+          <span class="qc-ico">🔬</span>
+          <div class="qc-title">Run Assessment</div>
+          <div class="qc-desc">Enter patient biomarkers for PCN risk prediction with AI analysis</div>
+        </div>
+        <div class="quick-card" onclick="showSection('chatbot')">
+          <span class="qc-ico">🤖</span>
+          <div class="qc-title">Ask PCN-AI</div>
+          <div class="qc-desc">RAG-powered chatbot for medical queries and clinical guidance</div>
+        </div>
+        <div class="quick-card" onclick="showSection('history')">
+          <span class="qc-ico">📋</span>
+          <div class="qc-title">View History</div>
+          <div class="qc-desc">Review your previous risk assessments and track trends</div>
+        </div>
+      </div>
+
+      <!-- ══ PROJECT OVERVIEW & REFERENCE PANEL ══ -->
+      <div class="gc" style="margin-top: 2rem;">
+        <div class="gc-hd" style="background: linear-gradient(135deg, var(--blue-lt), var(--purple-lt)); border-bottom: 1px solid var(--border);">
+          <div class="gc-ic">📚</div>
+          <div>
+            <div class="gc-title" style="font-family:'Syne', sans-serif; font-size: 1.1rem;">GCUF Final Year Project - Clinical &amp; Technical Documentation</div>
+            <div class="gc-sub">Interactive presentation guide for Pancreatic Cancer &amp; Neurodegenerative Disorder screening</div>
+          </div>
+        </div>
+        <div class="gc-body" style="padding: 0;">
+          <div class="premium-tab-list" style="margin: 1.5rem; display: flex; background: var(--bg2); border-radius: 12px; padding: 4px; gap: 4px;">
+            <div class="premium-tab active" id="tab-doc-0" onclick="switchDocTab(0)">🧬 Clinical Biomarkers</div>
+            <div class="premium-tab" id="tab-doc-1" onclick="switchDocTab(1)">📊 Model &amp; Pipeline</div>
+            <div class="premium-tab" id="tab-doc-2" onclick="switchDocTab(2)">🏗️ System Architecture</div>
+            <div class="premium-tab" id="tab-doc-3" onclick="switchDocTab(3)">👥 Project Team</div>
+          </div>
+
+          <!-- Doc Tab 0: Biomarkers -->
+          <div class="doc-tab-pane" id="doc-t0" style="padding: 1.5rem 2rem 2.5rem;">
+            <p style="margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; color: var(--txt3);">
+              The PCN Early Detection System screens patients using <strong>18 biomarkers</strong> (13 clinical inputs and 5 domain-engineered biomarkers). Review the reference table below for clinical ranges and metrics.
+            </p>
+            <div class="table-responsive">
+              <table class="eng-tbl">
+                <thead>
+                  <tr>
+                    <th>Biomarker</th>
+                    <th>Clinical Type</th>
+                    <th>Reference Range</th>
+                    <th>Clinical Significance &amp; Impact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Age</strong></td>
+                    <td class="mono-f">Demographic</td>
+                    <td class="mono-v">40 - 90 years</td>
+                    <td>Pancreatic Cancer risk doubles every decade after 50. Neurological decay rates scale heavily with age.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>BMI</strong></td>
+                    <td class="mono-f">Physical / Metabolic</td>
+                    <td class="mono-v">16.0 - 55.0 kg/m²</td>
+                    <td>Obesity is a strong driver for diabetes, metabolic syndrome, and subsequent pancreatic stress.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>HbA1c</strong></td>
+                    <td class="mono-f">Glycaemic Marker</td>
+                    <td class="mono-v">4.5 - 12.0%</td>
+                    <td>Indicator of chronic hyperglycaemia. Patients with recent-onset diabetes have up to 8x higher risk of Pancreatic Cancer.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LDL Cholesterol</strong></td>
+                    <td class="mono-f">Lipid Profile</td>
+                    <td class="mono-v">40 - 260 mg/dL</td>
+                    <td>Correlated with cardiovascular health, metabolic status, and neuro-lipid homeostasis.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>AST &amp; ALT</strong></td>
+                    <td class="mono-f">Liver Enzymes</td>
+                    <td class="mono-v">5 - 150 / 5 - 200 U/L</td>
+                    <td>Alanine Aminotransferase and Aspartate Aminotransferase measure hepatic stress and bile duct obstruction.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>APOE-e4 Gene</strong></td>
+                    <td class="mono-f">Genetic Flag</td>
+                    <td class="mono-v">Yes / No</td>
+                    <td>The single strongest genetic risk factor for Alzheimer's and cognitive impairment.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Memory Score</strong></td>
+                    <td class="mono-f">Cognitive Metric</td>
+                    <td class="mono-v">1 - 10 scale</td>
+                    <td>Clinical cognitive performance score. Drop below 6 suggests neurological deterioration.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Vitamin B12</strong></td>
+                    <td class="mono-f">Nutritional / Neuro</td>
+                    <td class="mono-v">150 - 800 pg/mL</td>
+                    <td>Neuroprotective vitamin. Deficiencies lead to demyelination and mimic neurodegenerative disorders.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Doc Tab 1: Model & Pipeline -->
+          <div class="doc-tab-pane" id="doc-t1" style="display: none; padding: 1.5rem 2rem 2.5rem;">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+              <div>
+                <h4 style="font-family:'Syne', sans-serif; margin-bottom: 1rem; color: var(--txt);">Ensemble Model Classifier</h4>
+                <p style="font-size: 0.88rem; line-height: 1.7; color: var(--txt3); margin-bottom: 1rem;">
+                  Our machine learning pipeline uses a <strong>Soft-Voting Ensemble Classifier</strong> that combines an <strong>XGBoost Classifier</strong> and a <strong>Logistic Regression model</strong>.
+                </p>
+                <div style="background: var(--bg2); border: 1px solid var(--border); padding: 1rem; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.6; color: var(--txt2);">
+                  <strong>Model Performance Metrics:</strong><br>
+                  • Ensemble ROC-AUC: <span style="color: var(--blue); font-weight: bold;">89.36%</span><br>
+                  • XGBoost ROC-AUC: <span style="color: var(--blue); font-weight: bold;">87.47%</span><br>
+                  • Accuracy (Test Set): <span style="color: var(--green); font-weight: bold;">81.00%</span><br>
+                  • F1-Score (Weighted): <span style="color: var(--green); font-weight: bold;">82.00%</span><br>
+                  • Risk Detection Cutoff: <span style="color: var(--amber); font-weight: bold;">40.00%</span>
+                </div>
+              </div>
+              <div style="margin-top: 1rem;">
+                <h4 style="font-family:'Syne', sans-serif; margin-bottom: 1rem; color: var(--txt);">Pipeline Architecture</h4>
+                <ul style="font-size: 0.88rem; line-height: 1.8; color: var(--txt3); padding-left: 1.2rem;">
+                  <li><strong>Preprocessing</strong>: Zero-mean, unit-variance Scaling using <code>StandardScaler</code> fitted on train split.</li>
+                  <li><strong>Balancing</strong>: Resampled minority class using Synthetic Over-sampling (SMOTE) to ensure high sensitivity to risk cases.</li>
+                  <li><strong>Hyperparameters</strong>: Optimized via 720 GridSearchCV fits. Includes 800 estimators, 0.03 learning rate, and L1/L2 regularisation.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Doc Tab 2: System Architecture -->
+          <div class="doc-tab-pane" id="doc-t2" style="display: none; padding: 1.5rem 2rem 2.5rem;">
+            <p style="margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; color: var(--txt3);">
+              The system utilizes a modern decoupled architecture. The frontend web panel communicates with dedicated microservices for Authentication and AI inference.
+            </p>
+            <div style="background: var(--bg2); border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.6; color: var(--txt2); overflow-x: auto;">
+              ┌────────────────────────────────────────────────────────┐<br>
+              │               CLIENT FRONTEND (index.html)             │<br>
+              │      Dashboard  ·  Assessment Form  ·  RAG Chat        │<br>
+              └──────────────┬──────────────────────────┬──────────────┘<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│ REST APIs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│ REST APIs<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ (Port 8001)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ (Port 8000)<br>
+              ┌──────────────────────────┐&nbsp;&nbsp;┌──────────────────────────┐<br>
+              │    AUTH API (FastAPI)    │&nbsp;&nbsp;│    ML &amp; RAG SERVICES     │<br>
+              │  • SQLite DB (pcn_users) │&nbsp;&nbsp;│  • XGBoost + LogReg      │<br>
+              │  • JWT Auth &amp; Operations │&nbsp;&nbsp;│  • FAISS Vector Database │<br>
+              │  • History log record    │&nbsp;&nbsp;│  • Groq Llama3-8b API    │<br>
+              └──────────────────────────┘&nbsp;&nbsp;└──────────────────────────┘
+            </div>
+          </div>
+
+          <!-- Doc Tab 3: Project Team -->
+          <div class="doc-tab-pane" id="doc-t3" style="display: none; padding: 1.5rem 2rem 2.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+              <div class="stat-card" style="--acc: var(--blue); --icbg: var(--blue-lt); --icbd: var(--blue-md); text-align: center; padding: 1.5rem; position: relative;">
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)"></div>
+                <div class="sc-icon" style="margin: 0 auto 0.75rem;">👨‍💻</div>
+                <div class="u-nm" style="font-size: 1.05rem; font-weight: bold; color: var(--txt);">Aleem Amjad</div>
+                <div class="u-ml" style="font-size: 0.78rem; color: var(--txt3); margin-top: 4px;">Developer &amp; ML Engineer</div>
+                <div style="font-size: 0.72rem; color: var(--txt4); margin-top: 8px;">GCUF Dept. of IT</div>
+              </div>
+              <div class="stat-card" style="--acc: var(--purple); --icbg: var(--purple-lt); --icbd: var(--purple-md); text-align: center; padding: 1.5rem; position: relative;">
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)"></div>
+                <div class="sc-icon" style="margin: 0 auto 0.75rem;">👩‍💻</div>
+                <div class="u-nm" style="font-size: 1.05rem; font-weight: bold; color: var(--txt);">Maham Faryad</div>
+                <div class="u-ml" style="font-size: 0.78rem; color: var(--txt3); margin-top: 4px;">RAG &amp; Research Developer</div>
+                <div style="font-size: 0.72rem; color: var(--txt4); margin-top: 8px;">GCUF Dept. of IT</div>
+              </div>
+              <div class="stat-card" style="--acc: var(--cyan); --icbg: var(--cyan-lt); --icbd: var(--border2); text-align: center; padding: 1.5rem; position: relative;">
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)"></div>
+                <div class="sc-icon" style="margin: 0 auto 0.75rem;">👩‍💻</div>
+                <div class="u-nm" style="font-size: 1.05rem; font-weight: bold; color: var(--txt);">Shafia Arooj</div>
+                <div class="u-ml" style="font-size: 0.78rem; color: var(--txt3); margin-top: 4px;">Frontend &amp; Documentation</div>
+                <div style="font-size: 0.72rem; color: var(--txt4); margin-top: 8px;">GCUF Dept. of IT</div>
+              </div>
+            </div>
+            <div style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem; text-align: center;">
+              <span style="font-size: 0.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em; color: var(--txt4);">Department of Information Technology</span><br>
+              <span style="font-size: 0.88rem; color: var(--txt3); font-weight: 500;">Government College University Faisalabad (GCUF)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PREDICT (FIXED: no page reset) ══ -->
+    <div class="section" id="section-predict">
+      <div class="predict-wrap">
+        <!-- INPUT FORM -->
+        <div class="gc">
+          <div class="gc-hd">
+            <div class="gc-ic">👤</div>
+            <div><div class="gc-title">Patient Risk Assessment Form</div><div class="gc-sub">Enter clinical biomarkers for PCN prediction</div></div>
+          </div>
+          <div class="gc-body">
+            <div class="fr c2">
+              <div><label class="fl">Age (years)</label><input type="number" class="fi" id="f-age" min="1" max="120" value="50"/></div>
+              <div><label class="fl">Gender</label><select class="fi" id="f-gender"><option>Male</option><option>Female</option></select></div>
+            </div>
+            <div class="fr c2">
+              <div><label class="fl">BMI</label><input type="number" class="fi" id="f-bmi" min="10" max="60" step="0.1" value="25.0"/></div>
+              <div><label class="fl">HbA1c Level</label><input type="number" class="fi" id="f-hba1c" min="3" max="15" step="0.1" value="5.5"/></div>
+            </div>
+            <div class="fsect"><div class="fsect-ic">🫀</div>Liver Enzymes &amp; Lipid Panel</div>
+            <div class="fr c3">
+              <div><label class="fl">LDL (mg/dL)</label><input type="number" class="fi" id="f-ldl" min="30" max="400" value="120"/></div>
+              <div><label class="fl">AST (U/L)</label><input type="number" class="fi" id="f-ast" min="5" max="500" value="25"/></div>
+              <div><label class="fl">ALT (U/L)</label><input type="number" class="fi" id="f-alt" min="5" max="500" value="25"/></div>
+            </div>
+            <div class="fsect"><div class="fsect-ic">🧠</div>Genetic, Nutritional &amp; Neurological</div>
+            <div class="fr c3">
+              <div><label class="fl">APOE-e4 Gene</label><select class="fi" id="f-apoe"><option>No</option><option>Yes</option></select></div>
+              <div><label class="fl">Family Hx Neuro</label><select class="fi" id="f-famhx"><option>No</option><option>Yes</option></select></div>
+              <div><label class="fl">Vitamin B12 (pg/mL)</label><input type="number" class="fi" id="f-b12" min="50" max="2000" step="5" value="400"/></div>
+            </div>
+            <div class="fr" style="margin-bottom:.9rem">
+              <div><label class="fl">Memory Score (1–10)</label>
+              <div class="range-wrap"><input type="range" min="1" max="10" step="0.5" value="7" id="f-mem" oninput="document.getElementById('rv-mem').textContent=this.value"/><span class="range-val" id="rv-mem">7</span></div></div>
+            </div>
+            <div class="fr" style="margin-bottom:.9rem">
+              <div><label class="fl">Sleep Hours / Night</label>
+              <div class="range-wrap"><input type="range" min="1" max="12" step="0.5" value="7" id="f-slp" oninput="document.getElementById('rv-slp').textContent=this.value"/><span class="range-val" id="rv-slp">7</span></div></div>
+            </div>
+            <div class="fr">
+              <div><label class="fl">Depression Score (0–10)</label>
+              <div class="range-wrap"><input type="range" min="0" max="10" step="0.5" value="2" id="f-dep" oninput="document.getElementById('rv-dep').textContent=this.value"/><span class="range-val" id="rv-dep">2</span></div></div>
+            </div>
+            <!-- ✅ FIX: Using button type="button" NOT inside <form>, so no page reset -->
+            <button type="button" class="run-btn" onclick="runPredict()" id="run-btn">
+              🔍 Run Risk Assessment <span class="spinner" id="run-sp"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- RESULT PANEL (Premium Redesign) -->
+        <div class="detail-side" id="result-panel">
+          <div class="gc r-empty" id="rp-empty">
+            <div class="r-empty-ico">🧬</div>
+            <div class="r-empty-txt">Enter patient biomarkers above and click<br><strong style="color:var(--txt2)">Run Risk Assessment</strong><br><br><span style="font-size:.75rem;opacity:.7">AI Analysis will appear here</span></div>
+          </div>
+          
+          <div id="rp-filled" style="display:none">
+            <div class="result-grid">
+              <!-- Result Summary Sidebar -->
+              <div class="summary-side">
+                <div class="gc" style="border-top: 4px solid var(--gauge-clr, var(--blue))">
+                  <div class="gc-body" style="padding: 1.25rem">
+                    <div id="r-badge" class="r-badge-sm" style="margin-bottom: 0.5rem">—</div>
+                    <div id="r-pct" class="r-pct" style="font-size: 3rem; margin-bottom: 0.5rem">0%</div>
+                    <div id="r-desc" class="r-desc" style="font-size: 0.78rem; margin-bottom: 1rem">—</div>
+                    <div id="gauge-div" style="height:180px; margin: -10px 0"></div>
+                    <div class="r-conf" id="r-conf" style="width: 100%; text-align: center; font-size: 0.65rem">—</div>
+                  </div>
+                </div>
+                
+                <div class="gc" style="margin-top: 1rem">
+                    <div class="gc-hd" style="padding: 0.8rem 1rem">
+                        <div class="gc-title" style="font-size: 0.8rem">Quick View</div>
+                    </div>
+                    <div class="gc-body" style="padding: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap:0.5rem" id="bio-tiles">
+                    </div>
+                </div>
+              </div>
+
+              <!-- Result Detailed Tabs -->
+              <div class="detail-side">
+                <div class="premium-tab-list" id="result-tab-list">
+                  <div class="premium-tab active" onclick="switchRTab(0)">🧬 Biomarkers</div>
+                  <div class="premium-tab" onclick="switchRTab(1)">📊 Analysis</div>
+                  <div class="premium-tab" onclick="switchRTab(2)">📈 Trends</div>
+                  <div class="premium-tab" onclick="switchRTab(3)">📋 Report</div>
+                </div>
+
+                <div class="gc">
+                    <div class="gc-body" style="padding: 1.5rem">
+                        <!-- Tab 0: Biomarkers -->
+                        <div class="rtab-pane active" id="rt0">
+                           <div class="chart-lbl">Raw Biomarker Distribution</div>
+                           <div id="raw-div" style="height:320px"></div>
+                        </div>
+
+                        <!-- Tab 1: Feature Analysis -->
+                        <div class="rtab-pane" id="rt1">
+                          <div id="radar-div" style="height:320px;margin-bottom:1rem"></div>
+                          <table class="eng-tbl">
+                            <thead><tr><th>Engineered Feature</th><th>Impact Level</th><th>Value</th></tr></thead>
+                            <tbody id="eng-tbody"></tbody>
+                          </table>
+                        </div>
+
+                        <!-- Tab 2: Trends/Charts -->
+                        <div class="rtab-pane" id="rt2">
+                          <div class="chart2">
+                            <div><div class="chart-lbl">Risk Contribution</div><div id="bar-div" style="height:280px"></div></div>
+                            <div><div class="chart-lbl">Confidence Spread</div><div id="pie-div" style="height:280px"></div></div>
+                          </div>
+                        </div>
+
+                        <!-- Tab 3: Clinical Report -->
+                        <div class="rtab-pane" id="rt3">
+                          <pre id="report-md" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--txt3);white-space:pre-wrap;line-height:1.7;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;max-height:400px;overflow-y:auto"></pre>
+                          <div class="disc-box">⚠ <strong>Clinical Disclaimer:</strong> AI decision-support only. Must be reviewed by a licensed clinical specialist.</div>
+                          <div class="dl-btns">
+                            <button class="dl-btn" onclick="downloadMD()">⬇ Download (.md)</button>
+                            <button class="dl-btn" onclick="copyReport()">📋 Copy Text</button>
+                            <button class="dl-btn dl-pdf" onclick="generatePDF()" id="pdf-btn" style="background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border-color:var(--blue);font-weight:700">📄 Download PDF Report</button>
+                          </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HISTORY ══ -->
+    <div class="section" id="section-history">
+      <div class="page-hdr">📋 Assessment History</div>
+      <div class="tcard">
+        <div class="tbar">
+          <div class="tbar-lbl">Previous Risk Assessments</div>
+          <button class="r-btn" onclick="loadHistory()">↻ Refresh</button>
+        </div>
+        <div class="table-responsive" style="border:none;border-radius:0">
+          <div id="history-body"><div class="empty-st">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CHATBOT ══ -->
+    <div class="section" id="section-chatbot">
+      <div class="page-hdr">🤖 PCN-AI Chatbot</div>
+      <div class="chat-wrap">
+        <div class="chat-card">
+          <div class="chat-hdr">
+            <div class="chat-av">🧬</div>
+            <div>
+              <div class="chat-name">PCN-AI Assistant</div>
+              <div class="chat-st-row">
+                <span id="chat-st-dot" style="width:7px;height:7px;border-radius:50%;background:var(--txt4);display:inline-block"></span>
+                <span id="chat-st-txt">Checking…</span>
+              </div>
+            </div>
+            <button class="chat-clr-btn" onclick="clearChat()">Clear</button>
+          </div>
+          <div class="chat-msgs" id="chat-msgs">
+            <div class="chat-msg">
+              <div class="msg-av av-bot">🧬</div>
+              <div><div class="chat-bub bot">👋 Hello! I'm <strong>PCN-AI</strong>, your medical assistant for Pancreatic Cancer &amp; Neurodegenerative Disorders.<br><br>Ask me about risk factors, biomarkers, treatment options, or early detection strategies.</div></div>
+            </div>
+          </div>
+          <div class="chat-inp-wrap">
+            <div id="chat-offline-notice" class="chat-offline-notice">
+              ⚠ RAG Chatbot offline. Check <code>GROQ_API_KEY</code> in <code>.env</code> and restart server.
+            </div>
+            <div class="chat-row">
+              <textarea id="chat-ta" class="chat-ta" placeholder="Ask about PCN risk factors, symptoms, biomarkers…" rows="1" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea>
+              <button class="chat-send-btn" onclick="sendChat()" id="chat-send">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+            <div class="chat-sugg-row">
+              <button class="c-sugg" onclick="qAsk('What are early symptoms of pancreatic cancer?')">Early symptoms?</button>
+              <button class="c-sugg" onclick="qAsk('How does APOE-e4 gene affect neurodegeneration?')">APOE-e4 risk?</button>
+              <button class="c-sugg" onclick="qAsk('What does high HbA1c mean for PCN risk?')">HbA1c & PCN?</button>
+              <button class="c-sugg" onclick="qAsk('What lifestyle changes reduce cancer risk?')">Prevention?</button>
+            </div>
+          </div>
+        </div>
+        <div class="chat-info-panel">
+          <div class="ci-card"><div class="ci-ico">🧠</div><div class="ci-title">RAG-Powered AI</div><div class="ci-desc">Retrieval-Augmented Generation with Groq LLM + curated medical knowledge base of 17 chunks.</div></div>
+          <div class="ci-card"><div class="ci-ico">📚</div><div class="ci-title">Knowledge Base</div><div class="ci-desc">Trained on PCN medical literature, clinical guidelines, and biomarker references across 6 topics.</div></div>
+          <div class="ci-card"><div class="ci-ico">⚡</div><div class="ci-title">Source Citations</div><div class="ci-desc">Every answer includes knowledge base source references for clinical verification.</div></div>
+          <div class="disc-box">⚠ <strong>Disclaimer:</strong> PCN-AI provides educational information only. Always consult a licensed physician.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ADMIN ══ -->
+    <div class="section" id="section-admin">
+      <div class="page-hdr">⚙️ Admin Panel</div>
+      <div class="admin-stats">
+        <div class="a-stat"><div class="a-ic" style="background:var(--blue-lt);border-color:var(--blue-md)">👥</div><div><div class="a-val" id="a-total">—</div><div class="a-lbl">Total Users</div></div></div>
+        <div class="a-stat"><div class="a-ic" style="background:var(--green-lt);border-color:var(--green-md)">✅</div><div><div class="a-val" id="a-active">—</div><div class="a-lbl">Active Users</div></div></div>
+        <div class="a-stat"><div class="a-ic" style="background:var(--red-lt);border-color:var(--red-md)">🚫</div><div><div class="a-val" id="a-banned">—</div><div class="a-lbl">Banned Users</div></div></div>
+      </div>
+      <div class="tcard">
+        <div class="tbar">
+          <div class="tbar-lbl">All Registered Users</div>
+          <div style="display:flex;gap:.6rem;align-items:center">
+            <input type="text" class="s-inp" placeholder="Search name or email…" id="admin-search" oninput="filterUsers()"/>
+            <button class="r-btn" onclick="loadAdminData()">↻ Refresh</button>
+          </div>
+        </div>
+        <div class="table-responsive" style="border:none;border-radius:0">
+          <div id="admin-users-body"><div class="empty-st">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app-page -->
+
+<!-- Loading Overlay -->
+<div class="load-overlay" id="load-overlay">
+  <div class="load-ring-wrap">
+    <div class="load-ring"></div>
+    <div class="load-ring-inner"></div>
+  </div>
+  <div class="load-txt">Analysing biomarkers…</div>
+  <div class="load-sub">Running XGBoost + Logistic ensemble</div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── ENDPOINTS ──
+const AUTH = 'http://localhost:8001';
+const PCN  = 'http://localhost:8000';
+
+// ── STATE ──
+let CU = null, allUsers = [], chatHist = [], lastResult = null, lastPayload = null;
+
+// ── THEME ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-btn').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('pcn-theme', isDark ? 'light' : 'dark');
+  if (lastResult && lastPayload) redrawCharts(lastResult, lastPayload);
+}
+(function () {
+  const saved = localStorage.getItem('pcn-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+
+// ── SECTION TITLES ──
+const TITLES = {
+  dashboard: { t: 'Dashboard', s: 'Overview & Quick Actions' },
+  predict:   { t: 'Risk Assessment', s: 'Enter patient biomarkers for PCN prediction' },
+  history:   { t: 'My History', s: 'Previous risk assessments' },
+  chatbot:   { t: 'PCN-AI Chatbot', s: 'RAG-powered medical assistant' },
+  admin:     { t: 'Admin Panel', s: 'User management & system control' },
+};
+
+function showPage(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(n + '-page').classList.add('active');
+}
+
+function showSection(n) {
+  localStorage.setItem('active_section', n);
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + n).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  const si = document.getElementById('sn-' + n);
+  if (si) si.classList.add('active');
+  const ti = TITLES[n] || { t: n, s: '' };
+  document.getElementById('tb-title').textContent = ti.t;
+  document.getElementById('tb-sub').textContent = ti.s;
+  if (n === 'history') loadHistory();
+  if (n === 'admin') loadAdminData();
+  if (n === 'chatbot') checkChatStatus();
+  closeSidebar(); // Close mobile sidebar drawer after selection
+}
+
+// ── SIDEBAR DRAWER RESPONISVENESS ──
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sb && overlay) {
+    const isOpen = sb.classList.toggle('open');
+    overlay.classList.toggle('active', isOpen);
+  }
+}
+function closeSidebar() {
+  const sb = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sb && overlay) {
+    sb.classList.remove('open');
+    overlay.classList.remove('active');
+  }
+}
+
+// ── DOCUMENTATION TABS SWITCHER ──
+function switchDocTab(idx) {
+  for (let i = 0; i < 4; i++) {
+    const tab = document.getElementById('tab-doc-' + i);
+    const pane = document.getElementById('doc-t' + i);
+    if (tab) tab.classList.toggle('active', i === idx);
+    if (pane) pane.style.display = (i === idx) ? 'block' : 'none';
+  }
+}
+
+// ── PLOTLY RESIZE LISTENER ──
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.js-plotly-plot').forEach(plot => {
+    try { Plotly.Plots.resize(plot); } catch (e) { console.error("Plotly resize error:", e); }
+  });
+});
+
+// ── RESULT TABS ── (key fix: stays on same page, scoped to result-tab-list only)
+function switchRTab(idx) {
+  const tabList = document.getElementById('result-tab-list');
+  if (tabList) {
+    tabList.querySelectorAll('.premium-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  }
+  document.querySelectorAll('.rtab-pane').forEach((p, i) => p.classList.toggle('active', i === idx));
+  // Redraw charts when tab becomes visible (Plotly needs visible container)
+  if (lastResult && lastPayload) {
+    setTimeout(() => redrawCharts(lastResult, lastPayload), 50);
+  }
+}
+
+// ── UTILITIES ──
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'alert error show';
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+function toast(msg, type = 'info') {
+  const w = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  el.innerHTML = `<span style="font-weight:700">${icons[type] || 'ℹ'}</span> ${msg}`;
+  w.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(60px)'; el.style.transition = 'all .3s'; setTimeout(() => el.remove(), 300); }, 3200);
+}
+
+function getToken() { return localStorage.getItem('pcn_token'); }
+function saveToken(t) { localStorage.setItem('pcn_token', t); }
+function clearToken() { localStorage.removeItem('pcn_token'); }
+
+async function api(url, path, opts = {}) {
+  const tk = getToken();
+  const h = {
+    'Content-Type': 'application/json',
+    ...(tk ? { 'Authorization': 'Bearer ' + tk } : {}),
+    ...(opts.headers || {})
+  };
+  const r = await fetch(url + path, { ...opts, headers: h });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || 'Request failed');
+  return d;
+}
+
+// ── AUTH ──
+async function doLogin() {
+  const e = document.getElementById('login-email').value.trim();
+  const p = document.getElementById('login-password').value;
+  if (!e || !p) { showAlert('login-alert', 'Please fill all fields.'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  document.getElementById('login-sp').classList.add('show');
+  try {
+    const d = await api(AUTH, '/auth/login', { method: 'POST', body: JSON.stringify({ email: e, password: p }) });
+    saveToken(d.token); CU = d.user; enterApp();
+  } catch (err) {
+    showAlert('login-alert', err.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('login-sp').classList.remove('show');
+  }
+}
+
+async function doRegister() {
+  const n = document.getElementById('reg-name').value.trim();
+  const e = document.getElementById('reg-email').value.trim();
+  const p = document.getElementById('reg-password').value;
+  if (!n || !e || !p) { showAlert('reg-alert', 'Please fill all fields.'); return; }
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true;
+  document.getElementById('reg-sp').classList.add('show');
+  try {
+    const d = await api(AUTH, '/auth/register', { method: 'POST', body: JSON.stringify({ name: n, email: e, password: p }) });
+    saveToken(d.token); CU = d.user; enterApp(); toast('Account created! Welcome.', 'success');
+  } catch (err) {
+    showAlert('reg-alert', err.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('reg-sp').classList.remove('show');
+  }
+}
+
+function doLogout() {
+  clearToken(); CU = null;
+  localStorage.removeItem('active_section');
+  localStorage.removeItem('pcn_last_result');
+  localStorage.removeItem('pcn_last_payload');
+  showPage('login'); toast('Signed out.', 'info');
+}
+
+async function checkAuth() {
+  if (!getToken()) return;
+  try { CU = await api(AUTH, '/auth/me'); enterApp(); } catch (e) { clearToken(); }
+}
+
+function enterApp() {
+  const ini = (CU.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('sb-av-txt').textContent = ini;
+  document.getElementById('sb-uname').textContent = CU.name;
+  document.getElementById('wname').textContent = CU.name.split(' ')[0];
+  if (CU.is_admin) {
+    document.getElementById('sb-urole').textContent = '⭐ Administrator';
+    document.getElementById('sn-admin').style.display = 'flex';
+    document.getElementById('admin-nav-lbl').style.display = 'block';
+  } else {
+    document.getElementById('sb-urole').textContent = 'Researcher';
+  }
+  showPage('app');
+  
+  const savedSec = localStorage.getItem('active_section') || 'dashboard';
+  showSection(savedSec);
+
+  // Restore last prediction if exists
+  const savedResult = localStorage.getItem('pcn_last_result');
+  const savedPayload = localStorage.getItem('pcn_last_payload');
+  if (savedResult && savedPayload) {
+    try {
+      lastResult = JSON.parse(savedResult);
+      lastPayload = JSON.parse(savedPayload);
+      showResult(lastResult, lastPayload);
+    } catch (e) {
+      console.error("Failed to restore last result:", e);
+    }
+  }
+
+  startClock(); checkPCNApi();
+  loadHistory().then(rows => { document.getElementById('mycount').textContent = rows ? rows.length : 0; });
+}
+
+function startClock() {
+  const u = () => {
+    const n = new Date();
+    const dd = document.getElementById('d-date');
+    const dt = document.getElementById('d-time');
+    if (dd) dd.textContent = n.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    if (dt) dt.textContent = n.toLocaleTimeString('en-US', { hour12: false });
+  };
+  u(); setInterval(u, 1000);
+}
+
+async function checkPCNApi() {
+  const pill = document.getElementById('api-pill');
+  const dot  = document.getElementById('api-dot');
+  const txt  = document.getElementById('api-txt');
+  try {
+    const h = await api(PCN, '/health');
+    pill.className = 'api-pill ok';
+    dot.className = 'ldot';
+    txt.textContent = 'API Online · Model: ' + h.model_loaded + ' · RAG: ' + h.rag_ready;
+  } catch (e) {
+    pill.className = 'api-pill err';
+    dot.className = 'ddot';
+    txt.textContent = 'API Offline — run: uvicorn api:app --port 8000';
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── PREDICT — FIXED (no page/scroll reset) ──
+// Key: button type="button", no <form> tags,
+//      event.preventDefault() not needed since
+//      we never submit a form
+// ══════════════════════════════════════════════
+async function runPredict() {
+  const payload = {
+    age:                   parseInt(document.getElementById('f-age').value),
+    gender:                document.getElementById('f-gender').value,
+    bmi:                   parseFloat(document.getElementById('f-bmi').value),
+    hba1c:                 parseFloat(document.getElementById('f-hba1c').value),
+    ldl:                   parseFloat(document.getElementById('f-ldl').value),
+    ast:                   parseFloat(document.getElementById('f-ast').value),
+    alt:                   parseFloat(document.getElementById('f-alt').value),
+    apoe_e4:               document.getElementById('f-apoe').value,
+    family_history_neuro:  document.getElementById('f-famhx').value,
+    vitamin_b12:           parseFloat(document.getElementById('f-b12').value),
+    memory_score:          parseFloat(document.getElementById('f-mem').value),
+    sleep_hours:           parseFloat(document.getElementById('f-slp').value),
+    depression_score:      parseFloat(document.getElementById('f-dep').value),
+  };
+
+  const runBtn = document.getElementById('run-btn');
+  runBtn.disabled = true;
+  document.getElementById('run-sp').classList.add('show');
+  document.getElementById('load-overlay').classList.add('show');
+
+  // Save scroll position to prevent jump
+  const scrollY = window.scrollY;
+
+  try {
+    const r = await api(PCN, '/predict', { method: 'POST', body: JSON.stringify(payload) });
+    lastResult = r; lastPayload = payload;
+    localStorage.setItem('pcn_last_result', JSON.stringify(r));
+    localStorage.setItem('pcn_last_payload', JSON.stringify(payload));
+    showResult(r, payload);
+
+    // Scroll to result panel
+    setTimeout(() => {
+      document.getElementById('result-panel').scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
+    // Log assessment
+    try { await api(AUTH, '/assessment/log', { method: 'POST', body: JSON.stringify({ risk_label: r.risk_label, probability: r.probability_percentage }) }); } catch (e) {}
+    try {
+      const hist = await api(AUTH, '/assessment/history');
+      document.getElementById('mycount').textContent = hist.length;
+    } catch (e) {}
+
+    toast(
+      r.risk_label === 'High Risk' ? '⚠ High Risk — referral recommended' : '✓ Low Risk result recorded',
+      r.risk_label === 'High Risk' ? 'error' : 'success'
+    );
+  } catch (e) {
+    toast('Prediction failed: ' + e.message, 'error');
+    window.scrollTo({ top: scrollY, behavior: 'instant' });
+  } finally {
+    runBtn.disabled = false;
+    document.getElementById('run-sp').classList.remove('show');
+    document.getElementById('load-overlay').classList.remove('show');
+  }
+}
+
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+
+function getPlotlyTheme(extra = {}) {
+  const dark = isDark();
+  return {
+    paper_bgcolor: dark ? '#111827' : '#ffffff',
+    plot_bgcolor:  dark ? '#111827' : '#ffffff',
+    font: { color: dark ? '#64748b' : '#64748b', family: 'Space Grotesk' },
+    margin: { l: 10, r: 10, t: 20, b: 30 },
+    ...extra
+  };
+}
+
+function showResult(r, payload) {
+  const hi  = r.risk_label === 'High Risk';
+  const cls = hi ? 'high' : 'low';
+
+  document.getElementById('rp-empty').style.display  = 'none';
+  document.getElementById('rp-filled').style.display = 'block';
+  
+  // Update colors for result
+  const color = hi ? 'var(--red)' : 'var(--green)';
+  document.documentElement.style.setProperty('--gauge-clr', color);
+
+  // Banner/Summary info
+  const badge = document.getElementById('r-badge');
+  if (badge) {
+    badge.textContent = (hi ? '⚠ ' : '✓ ') + r.risk_label;
+    badge.className = 'r-badge-sm ' + (hi ? 'rb-h' : 'rb-l');
+  }
+  
+  const pctEl = document.getElementById('r-pct');
+  if (pctEl) {
+    pctEl.textContent = r.probability_percentage;
+    pctEl.className   = 'r-pct ' + cls;
+  }
+  
+  const descEl = document.getElementById('r-desc');
+  if (descEl) {
+    descEl.textContent = hi
+      ? 'Patient exceeds the 40% risk threshold. Referral recommended.'
+      : 'Risk is within acceptable range. Routine monitoring advised.';
+  }
+  const confEl = document.getElementById('r-conf');
+  if (confEl) {
+    confEl.textContent = 'Confidence: ' + r.confidence + ' · ' + r.processing_time_ms + 'ms';
+  }
+
+  switchRTab(0);
+}
+
+function redrawCharts(r, payload) {
+  if (!r || !payload) return;
+  const hi    = r.risk_label === 'High Risk';
+  const dark  = isDark();
+  const pct   = parseFloat(r.probability_percentage);
+  const eng   = r.engineered_features;
+  const BLUE  = dark ? '#3b82f6' : '#2563eb';
+  const RED   = dark ? '#ef4444' : '#dc2626';
+  const GREEN = dark ? '#10b981' : '#059669';
+  const GRID  = dark ? '#1e293b' : '#f1f5f9';
+  const TICK  = dark ? '#475569' : '#94a3b8';
+  const TXT_S = dark ? '#94a3b8' : '#475569';
+  const PLTBG = dark ? '#0b1329' : '#ffffff';
+  const GAUGE_CLR = hi ? RED : GREEN;
+
+  // ── 3D-style Gauge ──
+  Plotly.newPlot('gauge-div', [{
+    type: 'indicator', mode: 'gauge+number+delta', value: pct,
+    delta: { reference: 40, valueformat: '.1f', suffix: '%', font: { size: 11, color: TICK } },
+    number: { suffix: '%', font: { size: 30, color: GAUGE_CLR, family: 'Syne' } },
+    gauge: {
+      axis: { range: [0, 100], tickcolor: TICK, tickfont: { color: TICK, size: 8 }, dtick: 20 },
+      bar: { color: GAUGE_CLR, thickness: 0.22 },
+      bgcolor: PLTBG, borderwidth: 0,
+      steps: [
+        { range: [0, 40],  color: dark ? 'rgba(16,185,129,.06)'  : '#f0fdf4' },
+        { range: [40, 65], color: dark ? 'rgba(245,158,11,.06)'  : '#fffbeb' },
+        { range: [65, 100],color: dark ? 'rgba(239,68,68,.08)' : '#fef2f2' }
+      ],
+      threshold: { line: { color: '#f59e0b', width: 2.5 }, thickness: .72, value: 40 }
+    },
+    title: { text: 'PCN Risk Score', font: { color: TICK, size: 11, family: 'Space Grotesk' } }
+  }], {
+    ...getPlotlyTheme({ height: 200, margin: { l: 20, r: 20, t: 50, b: 10 } }),
+    paper_bgcolor: PLTBG, plot_bgcolor: PLTBG
+  }, { responsive: true, displayModeBar: false });
+
+  // ── Biomarker tiles ──
+  const tileData = [
+    ['Age', payload.age], ['Gender', payload.gender[0]], ['BMI', payload.bmi.toFixed(1)],
+    ['HbA1c', payload.hba1c.toFixed(1)], ['APOE-e4', payload.apoe_e4], ['Fam Hx', payload.family_history_neuro],
+    ['Memory', payload.memory_score], ['Sleep', payload.sleep_hours + 'h']
+  ];
+  document.getElementById('bio-tiles').innerHTML = tileData.map(([l, v]) =>
+    `<div class="tile"><div class="tv">${v}</div><div class="tl">${l}</div></div>`
+  ).join('');
+
+  // ── Eng table ──
+  const engRows = [
+    ['Metabolic Index',   '(BMI × HbA1c) / 10',           eng.metabolic_index],
+    ['Liver Stress',      'AST + ALT',                     eng.liver_stress_score],
+    ['Neuro-Genetic Risk','(Age × APOE) + (FamHist × 10)', eng.neuro_genetic_risk],
+    ['Vascular / B12',    'LDL / (Vitamin B12 + 1)',        eng.vascular_b12_ratio],
+    ['Mental Health',     'Memory − (Depression × 0.7)',   eng.mental_health_index],
+  ];
+  document.getElementById('eng-tbody').innerHTML = engRows.map(([n, f, v]) =>
+    `<tr><td><strong>${n}</strong></td><td class="mono-f">${f}</td><td class="mono-v">${v}</td></tr>`
+  ).join('');
+
+  // ── Radar chart ──
+  const cats = ['Metabolic Index', 'Liver Stress', 'Neuro-Genetic', 'Vascular/B12', 'Mental Health'];
+  const vals = [eng.metabolic_index, eng.liver_stress_score, eng.neuro_genetic_risk, eng.vascular_b12_ratio, eng.mental_health_index];
+  Plotly.newPlot('radar-div', [{
+    type: 'scatterpolar', r: [...vals, vals[0]], theta: [...cats, cats[0]],
+    fill: 'toself',
+    line: { color: BLUE, width: 2.5 },
+    fillcolor: dark ? 'rgba(59,130,246,.12)' : 'rgba(37,99,235,.1)',
+    marker: { size: 7, color: BLUE }
+  }], {
+    polar: {
+      bgcolor: PLTBG,
+      radialaxis: { visible: true, color: TICK, gridcolor: GRID, tickfont: { color: TICK, size: 8 }, linecolor: GRID },
+      angularaxis: { color: TXT_S, gridcolor: GRID, tickfont: { color: dark ? '#e2e8f0' : '#334155', size: 10 } }
+    },
+    paper_bgcolor: PLTBG, height: 280, margin: { l: 45, r: 45, t: 20, b: 20 }, showlegend: false
+  }, { responsive: true, displayModeBar: false });
+
+  // ── Bar: engineered features ──
+  const engColors = ['#2563eb', '#0891b2', '#7c3aed', '#d97706', '#db2777'];
+  Plotly.newPlot('bar-div', [{
+    type: 'bar', x: cats, y: vals,
+    marker: { color: engColors, opacity: .9 },
+    text: vals.map(v => v.toFixed(2)), textposition: 'outside',
+    textfont: { color: TICK, size: 9, family: 'JetBrains Mono' }
+  }], {
+    ...getPlotlyTheme({ height: 220, margin: { l: 10, r: 10, t: 20, b: 40 } }),
+    paper_bgcolor: PLTBG, plot_bgcolor: PLTBG,
+    xaxis: { gridcolor: GRID, zeroline: false, linecolor: GRID, tickfont: { color: TICK, size: 9 } },
+    yaxis: { gridcolor: GRID, zeroline: false, linecolor: GRID, tickfont: { color: TICK } },
+    bargap: .38
+  }, { responsive: true, displayModeBar: false });
+
+  // ── Donut: risk dist ──
+  Plotly.newPlot('pie-div', [{
+    type: 'pie', labels: ['Risk', 'Safe Margin'], values: [pct, Math.max(0, 100 - pct)],
+    hole: .68,
+    marker: { colors: [hi ? RED : GREEN, dark ? '#1e293b' : '#e2e8f0'], line: { color: PLTBG, width: 2 } },
+    textfont: { family: 'Space Grotesk', size: 11 }
+  }], {
+    paper_bgcolor: PLTBG, height: 220, margin: { l: 10, r: 10, t: 20, b: 10 },
+    annotations: [{ text: `<b>${pct.toFixed(1)}%</b>`, x: .5, y: .5, font: { size: 20, family: 'JetBrains Mono', color: hi ? RED : GREEN }, showarrow: false }],
+    legend: { font: { color: TXT_S, family: 'Space Grotesk', size: 11 }, bgcolor: PLTBG }
+  }, { responsive: true, displayModeBar: false });
+
+  // ── Bar: raw biomarkers ──
+  const rawN = ['Age', 'BMI', 'HbA1c', 'LDL', 'AST', 'ALT', 'B12', 'Memory', 'Sleep', 'Depression'];
+  const rawV = [payload.age, payload.bmi, payload.hba1c, payload.ldl, payload.ast, payload.alt, payload.vitamin_b12, payload.memory_score, payload.sleep_hours, payload.depression_score];
+  Plotly.newPlot('raw-div', [{
+    type: 'bar', x: rawN, y: rawV,
+    marker: { color: BLUE, opacity: .82 },
+    text: rawV.map(v => typeof v === 'number' ? v.toFixed(1) : v), textposition: 'outside',
+    textfont: { color: TICK, size: 9, family: 'JetBrains Mono' }
+  }], {
+    ...getPlotlyTheme({ height: 200, margin: { l: 10, r: 10, t: 16, b: 40 } }),
+    paper_bgcolor: PLTBG, plot_bgcolor: PLTBG,
+    xaxis: { gridcolor: GRID, zeroline: false, linecolor: GRID, tickfont: { color: TICK, size: 10 } },
+    yaxis: { gridcolor: GRID, zeroline: false, linecolor: GRID, tickfont: { color: TICK } },
+    bargap: .36
+  }, { responsive: true, displayModeBar: false });
+
+  // ── Report markdown ──
+  const now = new Date();
+  const rmd = `# PCN Early Detection — Clinical Report
+Generated: ${now.toLocaleString()}
+
+---
+## Assessment Summary
+| Field | Value |
+|---|---|
+| Risk Label | ${r.risk_label} |
+| Probability | ${r.probability_percentage} |
+| Confidence | ${r.confidence} |
+| Threshold | 40% |
+| Processing Time | ${r.processing_time_ms} ms |
+
+---
+## Patient Input
+| Parameter | Value |
+|---|---|
+| Age | ${payload.age} years |
+| Gender | ${payload.gender} |
+| BMI | ${payload.bmi.toFixed(1)} |
+| HbA1c | ${payload.hba1c.toFixed(1)} |
+| LDL | ${payload.ldl.toFixed(1)} mg/dL |
+| AST | ${payload.ast.toFixed(1)} U/L |
+| ALT | ${payload.alt.toFixed(1)} U/L |
+| Vitamin B12 | ${payload.vitamin_b12.toFixed(1)} pg/mL |
+| Memory Score | ${payload.memory_score} |
+| Sleep Hours | ${payload.sleep_hours} |
+| Depression Score | ${payload.depression_score} |
+| APOE-e4 | ${payload.apoe_e4} |
+| Family History | ${payload.family_history_neuro} |
+
+---
+## Engineered Features
+| Feature | Value |
+|---|---|
+| Metabolic Index | ${eng.metabolic_index} |
+| Liver Stress Score | ${eng.liver_stress_score} |
+| Neuro-Genetic Risk | ${eng.neuro_genetic_risk} |
+| Vascular / B12 | ${eng.vascular_b12_ratio} |
+| Mental Health Index | ${eng.mental_health_index} |
+
+---
+> **Disclaimer:** AI model trained on synthetic EHR. Must be reviewed by a licensed clinician.`;
+
+  document.getElementById('report-md').textContent = rmd;
+  window._reportMd = rmd;
+  window._lastResult = r;
+  window._lastPayload = payload;
+}
+
+function downloadMD() {
+  if (!window._reportMd) { toast('Run assessment first', 'error'); return; }
+  const a = document.createElement('a');
+  a.href = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(window._reportMd);
+  a.download = 'pcn_report.md'; a.click();
+}
+
+function copyReport() {
+  if (!window._reportMd) { toast('Run assessment first', 'error'); return; }
+  navigator.clipboard.writeText(window._reportMd).then(() => toast('Report copied to clipboard', 'success'));
+}
+
+// ── PROFESSIONAL PDF REPORT ─────────────────────────────────────────────────
+async function generatePDF() {
+  const btn = document.getElementById('pdf-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Generating PDF...';
+  }
+
+  try {
+    if (!window._lastResult || !window._lastPayload) {
+      toast('Run assessment first before downloading PDF', 'error');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    if (!jsPDF) throw new Error('jsPDF library is not loaded');
+
+    const r = window._lastResult;
+    const p = window._lastPayload;
+    const eng = r.engineered_features || {};
+    const hi = r.risk_label === 'High Risk';
+    const pct = Math.max(0, Math.min(100, parseFloat(r.probability_percentage) || 0));
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+    const reportId = 'PCN-' + now.toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = 210, H = 297, M = 18, CW = W - M * 2;
+    let y = M;
+
+    const safe = s => (s === null || s === undefined || s === '') ? '—' : String(s);
+
+    // Header
+    doc.setFillColor(12, 28, 78);
+    doc.rect(0, 0, W, 36, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.text('PCN Early Detection System', M, 13);
+    doc.setFontSize(9);
+    doc.text('Pancreatic Cancer & Neurodegenerative Disorder — Assessment Report', M, 22);
+    doc.setFontSize(8);
+    doc.setTextColor(208, 214, 255);
+    doc.text(`Generated: ${dateStr} ${timeStr}`, W - M, 12, { align: 'right' });
+    doc.text(`Report ID: ${reportId}`, W - M, 20, { align: 'right' });
+
+    // Risk badge in header
+    const badgeText = hi ? 'High Risk' : 'Low Risk';
+    const badgeColor = hi ? [220, 53, 69] : [16, 185, 129];
+    const badgeW = doc.getTextWidth(badgeText) + 10;
+    doc.setFillColor(...badgeColor);
+    doc.roundedRect(W - M - badgeW, 24, badgeW, 10, 3, 3, 'F');
+    doc.setFontSize(7); doc.setTextColor(255, 255, 255);
+    doc.text(badgeText, W - M - badgeW / 2, 31, { align: 'center' });
+
+    y += 34;
+
+    // Top cards
+    const leftW = Math.round(CW * 0.62);
+    const rightW = CW - leftW - 8;
+    const cardH = 56;
+    const rx = M + leftW + 8;
+
+    doc.setFillColor(237, 249, 255);
+    doc.roundedRect(M, y, leftW, cardH, 6, 6, 'F');
+    doc.setDrawColor(186, 230, 253);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(M, y, leftW, cardH, 6, 6, 'S');
+    doc.setFontSize(9);
+    doc.setTextColor(17, 24, 39);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Risk Summary', M + 8, y + 10);
+    doc.setFontSize(28);
+    doc.setTextColor(hi ? 190 : 24, hi ? 38 : 102, hi ? 44 : 170);
+    doc.text(`${pct.toFixed(2)}%`, M + 8, y + 36);
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 99);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Predicted risk', M + 8, y + 46);
+
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(rx, y, rightW, cardH, 6, 6, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(rx, y, rightW, cardH, 6, 6, 'S');
+    doc.setFontSize(9);
+    doc.setTextColor(17, 24, 39);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Patient', rx + 8, y + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 99);
+    const meta = [
+      ['Name', safe(p.name || p.patient_name || '—')],
+      ['Age', safe(p.age) + ' yrs'],
+      ['Gender', safe(p.gender)],
+      ['Sample ID', safe(p.sample_id || '—')]
+    ];
+    meta.forEach((row, index) => {
+      doc.text(`${row[0]}: ${row[1]}`, rx + 8, y + 18 + index * 7);
+    });
+
+    y += cardH + 12;
+
+    // Patient parameters section
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(17, 24, 39);
+    doc.text('Patient Parameters', M, y);
+    const params = [
+      ['Age', safe(p.age) + ' yrs'],
+      ['Gender', safe(p.gender)],
+      ['BMI', safe(Number(p.bmi).toFixed(1))],
+      ['HbA1c', safe(Number(p.hba1c).toFixed(1)) + '%'],
+      ['LDL', safe(Number(p.ldl).toFixed(1)) + ' mg/dL'],
+      ['AST', safe(Number(p.ast).toFixed(1)) + ' U/L'],
+      ['ALT', safe(Number(p.alt).toFixed(1)) + ' U/L'],
+      ['B12', safe(Number(p.vitamin_b12).toFixed(1)) + ' pg/mL']
+    ];
+    doc.autoTable({
+      startY: y + 6,
+      theme: 'striped',
+      styles: { font: 'helvetica', fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, halign: 'left' },
+      bodyStyles: { fillColor: [248, 250, 255], textColor: [34, 44, 72] },
+      head: [['Parameter', 'Value']],
+      body: params,
+      columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: CW - 65 } },
+      tableWidth: CW,
+      margin: { left: M, right: M }
+    });
+    const paramsEnd = doc.lastAutoTable.finalY;
+
+    y = paramsEnd + 12;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Engineered Features', M, y);
+    const feats = [
+      ['Metabolic Index', safe(eng.metabolic_index)],
+      ['Liver Stress', safe(eng.liver_stress_score)],
+      ['Neuro-Genetic Risk', safe(eng.neuro_genetic_risk)],
+      ['Vascular/B12', safe(eng.vascular_b12_ratio)],
+      ['Mental Health', safe(eng.mental_health_index)]
+    ];
+    doc.autoTable({
+      startY: y + 6,
+      theme: 'striped',
+      styles: { font: 'helvetica', fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, halign: 'left' },
+      bodyStyles: { fillColor: [250, 245, 255], textColor: [34, 44, 72] },
+      head: [['Feature', 'Value']],
+      body: feats,
+      columnStyles: { 0: { cellWidth: 58 }, 1: { cellWidth: CW - 68 } },
+      tableWidth: CW,
+      margin: { left: M, right: M }
+    });
+    const featsEnd = doc.lastAutoTable.finalY;
+
+    y = featsEnd + 14;
+
+    // Risk visualization chart
+    const chartY = y;
+    const chartH = 64;
+    doc.setFillColor(250, 251, 255);
+    doc.roundedRect(M, chartY, CW, chartH, 5, 5, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(M, chartY, CW, chartH, 5, 5, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(17, 24, 39);
+    doc.text('Risk Visualisation', M + 6, chartY + 10);
+
+    const legendX = W - M - 72;
+    const legendY = chartY + 6;
+    const legendItems = [
+      { title: 'Risk Score', color: hi ? [220, 53, 69] : [37, 99, 235] },
+      { title: 'Cutoff', color: [107, 114, 128] }
+    ];
+    doc.setFontSize(7);
+    legendItems.forEach((item, index) => {
+      const itemY = legendY + index * 8;
+      doc.setFillColor(...item.color);
+      doc.roundedRect(legendX, itemY, 5, 5, 2, 2, 'F');
+      doc.setTextColor(51, 65, 85);
+      doc.text(item.title, legendX + 8, itemY + 4.5);
+    });
+
+    const barX = M + 8;
+    const barW = CW - 16;
+    const barY = chartY + 26;
+    const barH = 10;
+    const riskW = Math.max(10, Math.min(barW, (pct / 100) * barW));
+    doc.setFillColor(...(hi ? [220, 53, 69] : [37, 99, 235]));
+    doc.roundedRect(barX, barY, riskW, barH, 4, 4, 'F');
+    doc.setFillColor(226, 232, 240);
+    doc.roundedRect(barX + riskW, barY, barW - riskW, barH, 4, 4, 'F');
+    doc.setDrawColor(163, 163, 163);
+    doc.setLineWidth(0.6);
+    const cutoffX = barX + (40 / 100) * barW;
+    doc.line(cutoffX, barY - 2, cutoffX, barY + barH + 2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(17, 24, 39);
+    doc.text(`${pct.toFixed(2)}%`, barX, barY - 4);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 99);
+    doc.text('Clinical cutoff 40%', W - M - 6, barY - 4, { align: 'right' });
+
+    const metricY = barY + barH + 12;
+    const metricW = Math.round((CW - 16) / 3);
+    const metrics = [
+      { label: 'Metabolic', value: safe(eng.metabolic_index) },
+      { label: 'Liver stress', value: safe(eng.liver_stress_score) },
+      { label: 'Neuro risk', value: safe(eng.neuro_genetic_risk) }
+    ];
+    metrics.forEach((metric, index) => {
+      const x = M + 4 + index * (metricW + 4);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(x, metricY, metricW, 16, 4, 4, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(x, metricY, metricW, 16, 4, 4, 'S');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(17, 24, 39);
+      doc.text(String(metric.value), x + 4, metricY + 7);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(99, 115, 129);
+      doc.text(metric.label, x + 4, metricY + 12);
+    });
+
+    y = chartY + chartH + 14;
+
+    // Clinical Interpretation
+    doc.setFillColor(249, 250, 251);
+    doc.roundedRect(M, y, CW, 34, 5, 5, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(M, y, CW, 34, 5, 5, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(17, 24, 39);
+    doc.text('Clinical Interpretation', M + 6, y + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(64, 64, 64);
+    const interp = hi
+      ? 'Patient probability exceeds the clinical threshold. Immediate specialist referral is recommended. Consider imaging and confirmatory biomarker tests.'
+      : 'Low combined PCN risk observed. Routine monitoring per guidelines is advised. Counsel on preventive lifestyle measures.';
+    const interpLines = doc.splitTextToSize(interp, CW - 12);
+    doc.text(interpLines, M + 6, y + 17);
+
+    y += 34 + 12;
+
+    // Disclaimer
+    const disclaimer = 'This report is AI-assisted for research and clinical decision-support only. Results must be reviewed by a licensed clinician.';
+    const discLines = doc.splitTextToSize(disclaimer, CW - 16);
+    const discHeight = discLines.length * 4.6 + 16;
+    doc.setFillColor(255, 249, 230);
+    doc.roundedRect(M, y, CW, discHeight, 5, 5, 'F');
+    doc.setDrawColor(250, 230, 170);
+    doc.roundedRect(M, y, CW, discHeight, 5, 5, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(149, 115, 0);
+    doc.text('DISCLAIMER', M + 8, y + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 99);
+    doc.text(discLines, M + 8, y + 15);
+
+    // Footer
+    doc.setFillColor(29, 78, 216);
+    doc.rect(0, H - 14, W, 14, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text('Page 1 / 1', W - M, H - 8, { align: 'right' });
+
+    const fname = `PCN_Report_${hi ? 'High_Risk' : 'Low_Risk'}_${now.toISOString().slice(0, 10)}.pdf`;
+    doc.save(fname);
+    toast('PDF downloaded: ' + fname, 'success');
+  } catch (e) {
+    console.error('PDF error:', e);
+    toast('PDF generation failed: ' + e.message, 'error');
+  } finally {
+    if (btn) {
+      btn.textContent = 'Download PDF Report';
+      btn.disabled = false;
+    }
+  }
+}
+// ── HISTORY ──
+async function loadHistory() {
+  try {
+    const d = await api(AUTH, '/assessment/history');
+    renderHistory(d);
+    document.getElementById('mycount').textContent = d.length;
+    return d;
+  } catch (e) {
+    document.getElementById('history-body').innerHTML = '<div class="empty-st">Auth backend not running on port 8001.</div>';
+    return null;
+  }
+}
+
+function renderHistory(rows) {
+  const c = document.getElementById('history-body');
+  if (!rows || !rows.length) { c.innerHTML = '<div class="empty-st">No assessments yet.</div>'; return; }
+  let h = '<table class="htable"><thead><tr><th>#</th><th>Result</th><th>Probability</th><th>Date &amp; Time</th><th>Action</th></tr></thead><tbody>';
+  rows.forEach((r, i) => {
+    const cl = r.risk_label === 'High Risk' ? 'hi' : 'lo';
+    h += `<tr>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--txt4)">${i + 1}</td>
+      <td><span class="rbadge ${cl}">${cl === 'hi' ? '⚠' : '✓'} ${r.risk_label}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--blue);font-weight:600">${r.probability}</td>
+      <td style="font-size:.78rem">${new Date(r.created_at).toLocaleString()}</td>
+      <td><button class="act act-d" onclick="deleteAssessment(${r.id})">Delete</button></td>
+    </tr>`;
+  });
+  c.innerHTML = h + '</tbody></table>';
+}
+
+async function deleteAssessment(id) {
+  if (!confirm('Are you sure you want to delete this assessment?')) return;
+  try {
+    await api(AUTH, '/assessment/' + id, { method: 'DELETE' });
+    toast('Assessment deleted', 'success');
+    loadHistory();
+  } catch (e) {
+    toast('Failed to delete: ' + e.message, 'error');
+  }
+}
+
+// ── CHATBOT ──
+async function checkChatStatus() {
+  try {
+    const h = await api(PCN, '/health');
+    const ok = h.rag_ready === 'Ready';
+    document.getElementById('chat-st-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
+    document.getElementById('chat-st-txt').textContent = ok ? 'Online · RAG Ready' : 'RAG Offline';
+    document.getElementById('chat-offline-notice').style.display = ok ? 'none' : 'block';
+    document.getElementById('chat-send').disabled = !ok;
+  } catch (e) {
+    document.getElementById('chat-st-dot').style.background = 'var(--red)';
+    document.getElementById('chat-st-txt').textContent = 'API Offline';
+    document.getElementById('chat-offline-notice').style.display = 'block';
+    document.getElementById('chat-send').disabled = true;
+  }
+}
+
+function chatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+function qAsk(q) { document.getElementById('chat-ta').value = q; sendChat(); }
+
+function addMsg(text, role, sources = []) {
+  const wrap = document.getElementById('chat-msgs');
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg ' + (role === 'user' ? 'user' : '');
+  const isUser = role === 'user';
+  const avC = isUser ? 'av-user' : 'av-bot';
+  const avT = isUser ? (CU ? (CU.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'U') : '🧬';
+  const bc = role === 'user' ? 'user' : role === 'err' ? 'err' : 'bot';
+  const sr = sources && sources.length ? '<div class="chat-src-pills">' + sources.map(s => `<span class="src-pill">📄 ${s.topic}</span>`).join('') + '</div>' : '';
+  msg.innerHTML = `<div class="msg-av ${avC}">${avT}</div><div><div class="chat-bub ${bc}">${text}</div>${sr}</div>`;
+  wrap.appendChild(msg); wrap.scrollTop = wrap.scrollHeight;
+}
+
+function addTyping() {
+  const wrap = document.getElementById('chat-msgs');
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg'; msg.id = 'typ-ind';
+  msg.innerHTML = `<div class="msg-av av-bot">🧬</div><div class="typing-ind"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  wrap.appendChild(msg); wrap.scrollTop = wrap.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('typ-ind'); if (t) t.remove(); }
+
+async function sendChat() {
+  const inp = document.getElementById('chat-ta');
+  const msg = inp.value.trim(); if (!msg) return;
+  inp.value = ''; inp.style.height = 'auto';
+  document.getElementById('chat-send').disabled = true;
+  addMsg(msg, 'user'); addTyping();
+  try {
+    const res = await api(PCN, '/chat', { method: 'POST', body: JSON.stringify({ message: msg, history: chatHist }) });
+    removeTyping(); addMsg(res.answer, 'bot', res.sources || []);
+    chatHist.push({ user: msg, assistant: res.answer });
+    if (chatHist.length > 10) chatHist = chatHist.slice(-10);
+  } catch (e) {
+    removeTyping(); addMsg('Sorry — ' + e.message, 'err');
+  } finally {
+    document.getElementById('chat-send').disabled = false;
+  }
+}
+
+function clearChat() {
+  chatHist = [];
+  document.getElementById('chat-msgs').innerHTML = `
+    <div class="chat-msg"><div class="msg-av av-bot">🧬</div><div><div class="chat-bub bot">Chat cleared. How can I help you today?</div></div></div>`;
+}
+
+// ── ADMIN ──
+async function loadAdminData() {
+  try {
+    const [st, us] = await Promise.all([api(AUTH, '/admin/stats'), api(AUTH, '/admin/users')]);
+    document.getElementById('a-total').textContent  = st.total_users;
+    document.getElementById('a-active').textContent = st.active_users;
+    document.getElementById('a-banned').textContent = st.banned_users;
+    allUsers = us; renderUsers(us);
+  } catch (e) {
+    document.getElementById('admin-users-body').innerHTML = '<div class="empty-st">Could not load users.</div>';
+  }
+}
+
+function filterUsers() {
+  const q = document.getElementById('admin-search').value.toLowerCase();
+  renderUsers(allUsers.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)));
+}
+
+function renderUsers(users) {
+  const c = document.getElementById('admin-users-body');
+  if (!users || !users.length) { c.innerHTML = '<div class="empty-st">No users found.</div>'; return; }
+  const cols = ['#2563eb', '#0891b2', '#7c3aed', '#d97706', '#dc2626', '#059669', '#db2777'];
+  let h = '<table class="utable"><thead><tr><th>User</th><th>Status</th><th>Assessments</th><th>Joined</th><th>Last Login</th><th>Actions</th></tr></thead><tbody>';
+  users.forEach((u, i) => {
+    const col = cols[i % cols.length];
+    const ini = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const isSelf = CU && u.id === CU.id;
+    const sb = u.is_admin
+      ? '<span class="sbadge sb-adm2">👑 Admin</span>'
+      : u.is_banned
+        ? '<span class="sbadge sb-ban">🚫 Banned</span>'
+        : '<span class="sbadge sb-ok">✓ Active</span>';
+    let acts = '';
+    if (!u.is_admin && !isSelf) {
+      acts += u.is_banned
+        ? `<button class="act act-u" onclick="unbanU(${u.id},'${u.name.replace(/'/g,"\\'")}')">Unban</button>`
+        : `<button class="act act-b" onclick="banU(${u.id},'${u.name.replace(/'/g,"\\'")}')">Ban</button><button class="act act-a" onclick="mkAdmin(${u.id},'${u.name.replace(/'/g,"\\'")}')">Make Admin</button>`;
+      acts += `<button class="act act-d" onclick="delU(${u.id},'${u.name.replace(/'/g,"\\'")}')">Delete</button>`;
+    } else if (isSelf) { acts = '<span style="font-size:.7rem;color:var(--txt4)">You</span>'; }
+    h += `<tr>
+      <td><div class="u-cell"><div class="u-av" style="background:${col}18;color:${col}">${ini}</div>
+      <div><div class="u-nm">${u.name}</div><div class="u-ml">${u.email}</div></div></div></td>
+      <td>${sb}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--blue);font-weight:600">${u.assessment_count}</td>
+      <td style="font-size:.77rem">${new Date(u.created_at).toLocaleDateString()}</td>
+      <td style="font-size:.77rem;color:var(--txt4)">${u.last_login ? new Date(u.last_login).toLocaleDateString() : '—'}</td>
+      <td><div class="acts-row">${acts}</div></td>
+    </tr>`;
+  });
+  c.innerHTML = h + '</tbody></table>';
+}
+
+async function banU(id, n) { if (!confirm(`Ban "${n}"?`)) return; try { await api(AUTH, `/admin/users/${id}/ban`, { method: 'PUT' }); toast(`"${n}" banned.`, 'success'); loadAdminData(); } catch (e) { toast(e.message, 'error'); } }
+async function unbanU(id, n) { try { await api(AUTH, `/admin/users/${id}/unban`, { method: 'PUT' }); toast(`"${n}" unbanned.`, 'success'); loadAdminData(); } catch (e) { toast(e.message, 'error'); } }
+async function delU(id, n) { if (!confirm(`Delete "${n}" permanently?`)) return; try { await api(AUTH, `/admin/users/${id}`, { method: 'DELETE' }); toast('Deleted.', 'success'); loadAdminData(); } catch (e) { toast(e.message, 'error'); } }
+async function mkAdmin(id, n) { if (!confirm(`Make "${n}" admin?`)) return; try { await api(AUTH, `/admin/users/${id}/make-admin`, { method: 'PUT' }); toast(`"${n}" is now admin.`, 'success'); loadAdminData(); } catch (e) { toast(e.message, 'error'); } }
+
+// ── KEYBOARD SHORTCUTS ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('login-page').classList.contains('active')) doLogin();
+    if (document.getElementById('register-page').classList.contains('active')) doRegister();
+  }
+});
+
+// ── INIT ──
+checkAuth();
+</script>
+</body>
+</html>
